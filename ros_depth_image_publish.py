@@ -25,7 +25,7 @@ def getCameraMatrix(angle,resolution):
     # fx = f / dx #焦距的像素长度
     # fy = f / dy
     #方法2:直接求
-    fx=fy=(cx * 0.5)/tan(angle / 2) 
+    fx=fy=cx/tan(angle / 2) 
     Tx = Ty = 1
     K = np.array([[fx, 0, cx],
                 [0, fy, cy],
