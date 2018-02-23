@@ -96,6 +96,21 @@ def genRosDepthImage(np_img, resolution, time_now):
 
 
 
+def getCameraParameter(clientID, sensorHandle):
+    # 获得深度相机的近景/远景距离/视场角/分辨率
+    err, nearClip = vrep.simxGetObjectFloatParameter(
+        clientID, sensorHandle, vrep.sim_visionfloatparam_near_clipping, vrep.simx_opmode_oneshot_wait)
+    err, farClip = vrep.simxGetObjectFloatParameter(
+        clientID, sensorHandle, vrep.sim_visionfloatparam_far_clipping, vrep.simx_opmode_oneshot_wait)
+    err, angle = vrep.simxGetObjectFloatParameter(
+        clientID, sensorHandle, vrep.sim_visionfloatparam_perspective_angle, vrep.simx_opmode_oneshot_wait)
+    err, res_x = vrep.simxGetObjectIntParameter(
+        clientID, sensorHandle, vrep.sim_visionintparam_resolution_x, vrep.simx_opmode_oneshot_wait)
+    err, res_y = vrep.simxGetObjectIntParameter(
+        clientID, sensorHandle, vrep.sim_visionintparam_resolution_y, vrep.simx_opmode_oneshot_wait)
+    return  nearClip,farClip,angle,(res_x,res_y)
+
+
 UR5_LINKS=[("upper_arm_link","forearm_link"),
 ("shoulder_link","upper_arm_link"),
 ("base_link","shoulder_link"),
@@ -123,18 +138,9 @@ if clientID != -1:
     # 获得相机句柄
     res, sensorHandle = vrep.simxGetObjectHandle(clientID, VISION_SENSOR, vrep.simx_opmode_oneshot_wait)
     # 获得深度相机的近景/远景距离/视场角/分辨率
-    err, nearClip = vrep.simxGetObjectFloatParameter(
-        clientID, sensorHandle, vrep.sim_visionfloatparam_near_clipping, vrep.simx_opmode_oneshot_wait)
-    err, farClip = vrep.simxGetObjectFloatParameter(
-        clientID, sensorHandle, vrep.sim_visionfloatparam_far_clipping, vrep.simx_opmode_oneshot_wait)
-    err, angle = vrep.simxGetObjectFloatParameter(
-        clientID, sensorHandle, vrep.sim_visionfloatparam_perspective_angle, vrep.simx_opmode_oneshot_wait)
-    err, res_x = vrep.simxGetObjectIntParameter(
-        clientID, sensorHandle, vrep.sim_visionintparam_resolution_x, vrep.simx_opmode_oneshot_wait)
-    err, res_y = vrep.simxGetObjectIntParameter(
-        clientID, sensorHandle, vrep.sim_visionintparam_resolution_y, vrep.simx_opmode_oneshot_wait)
-    resolution=(res_x,res_y)
-    cam_K,cam_P=getCameraMatrix(angle,resolution) #相机内参
+    nearClip,farClip,angle,resolution=getCameraParameter(clientID, sensorHandle)
+    # 计算相机内参
+    cam_K,cam_P=getCameraMatrix(angle,resolution) 
     # 相机的位置固定，只变化转角
     err, sensorPos = vrep.simxGetObjectPosition(clientID, sensorHandle, -1, vrep.simx_opmode_oneshot_wait)
     print("farclip:%s  nearclip:%s" % (farClip, nearClip))
