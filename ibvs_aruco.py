@@ -82,7 +82,7 @@ if clientID!=-1:
         #获取Box的位置和姿态(全局)
         _,box_pos=vrep.simxGetObjectPosition(clientID,boxHandle,-1,vrep.simx_opmode_oneshot_wait)
         _,box_ori=vrep.simxGetObjectOrientation(clientID,boxHandle,-1,vrep.simx_opmode_oneshot_wait)
-        print("VREP:",np.degrees(box_ori))
+        print("VREP:",np.degrees(box_ori),box_pos)
         if err == vrep.simx_return_ok:
             if IMG_TYPE==IMG_RGB:#RGB图
                 np_img=np.array(img,dtype=np.uint8)
@@ -102,8 +102,9 @@ if clientID!=-1:
                 np_img,rots,trans=getMarkerPoseImage(np_img,maker_dict,camMat,distMat)
                 for m in range(len(rots)):
                     rot=cam_homMat[:3,:3].dot(rots[m])
-                    euler=tf.transformations.euler_from_matrix(rot,'rxyz')
-                    print("ARUCO",np.degrees(euler))
+                    ori_w=tf.transformations.euler_from_matrix(rot,'rxyz')
+                    pos_w=cam_homMat[:3,:3].dot(trans[m])
+                    print("ARUCO",np.degrees(ori_w),pos_w)
                 cv2.imshow('image',np_img) 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break

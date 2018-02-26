@@ -118,7 +118,7 @@ UR5_LINKS=[("upper_arm_link","forearm_link"),
 ("wrist_1_link","wrist_2_link"),
 ("wrist_2_link","wrist_3_link")]
 VISION_SENSOR = 'Vision_sensor#'  # 传感器名称
-DISP_DEPTHIMG = True # 是否显示图片
+DISP_DEPTHIMG = False # 是否显示图片
 
 
 vrep.simxFinish(-1)  # 关闭所有连接
@@ -128,9 +128,9 @@ rospy.init_node("rgbd_camera")
 tf_pub = tf.TransformBroadcaster(queue_size=10)
 tf_sub = tf.TransformListener()
 depthimg_pub = rospy.Publisher(
-    "/rgbd_camera/depth/image_raw", Image, queue_size=5)
+    "/rgbd_camera/depth/image_raw", Image, queue_size=20)
 caminfo_pub = rospy.Publisher(
-    "/rgbd_camera/depth/camera_info", CameraInfo, queue_size=1, latch=True)
+    "/rgbd_camera/depth/camera_info", CameraInfo, queue_size=1,latch=True)
 
 
 if clientID != -1:
@@ -144,7 +144,7 @@ if clientID != -1:
     # 相机的位置固定，只变化转角
     err, sensorPos = vrep.simxGetObjectPosition(clientID, sensorHandle, -1, vrep.simx_opmode_oneshot_wait)
     print("farclip:%s  nearclip:%s" % (farClip, nearClip))
-    print("resolution:%s x %s" % (res_x, res_y))
+    print("resolution:%s x %s" %(resolution[0],resolution[1]))
     print("perspective_radius:%s"%angle)
     # 发送流传送命令
     err, resolution_, image = vrep.simxGetVisionSensorDepthBuffer(
@@ -158,18 +158,21 @@ if clientID != -1:
             clientID, sensorHandle, -1, vrep.simx_opmode_oneshot_wait)
         if err1 == vrep.simx_return_ok:
             time_now = rospy.Time.now()  # 时间
-            np_img = np.array(img, dtype=np.float32)
+            np_img = np.array(img, dtype=np.float32) 
             np_img.resize([resolution[1], resolution[0]])
             np_img = np_img[:,::-1]# 垂直反转
+            ros_img=nearClip+np_img*(farClip-nearClip) #发送给ROS需要转换为实际距离
             #发送深度图
-            depthimg_pub.publish(genRosDepthImage(np_img, resolution, time_now))
+            depthimg_pub.publish(genRosDepthImage(ros_img, resolution, time_now))
             #发送相机参数
             caminfo_pub.publish(genRosCameraInfo(cam_K,cam_P,resolution,time_now))
             # 发送tf
             pubTransformTimeNow(sensorPos,sensorEuler,time_now)
             if DISP_DEPTHIMG:
                 # img=cv2.flip(img,1) #水平反转图片
+                np_img=cv2.pyrDown(np_img) #降采样
                 cv2.imshow('Depth image', np_img)
+
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
         elif err == vrep.simx_return_novalue_flag:
