@@ -13,7 +13,7 @@ add_definitions(-DNON_MATLAB_PARSING -DMAX_EXT_API_CONNECTIONS=255 -DLIN_VREP)
 
 #set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-# 添加vrep include
+# 添加vrep includeq
 if(DEFINED ENV{VREP_ROOT})
     set(VREP_REMOTE_DIR  $ENV{VREP_ROOT}/programming/remoteApi)
     set(VREP_INCLUDE_DIRS ${VREP_REMOTE_DIR} $ENV{VREP_ROOT}/programming/include)
