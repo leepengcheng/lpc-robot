@@ -1,14 +1,3 @@
-# #coding:utf-8
-# function include(absolutePathAndFile)
-#     if not __notFirst__ then
-#         __notFirst__=true
-#         __scriptCodeToRun__=assert(loadfile(absolutePathAndFile))
-#     end
-#     if __scriptCodeToRun__ then
-#         __scriptCodeToRun__()
-#     end
-# end
-# include('E:/Work/VREP/motionplanningDemo.lua')
 import os
 import zipfile
 import re

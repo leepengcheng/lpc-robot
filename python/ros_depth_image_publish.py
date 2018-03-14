@@ -36,14 +36,14 @@ def getCameraMatrix(angle,resolution):
     return map(lambda x:x.flatten().tolist(),(K,P))
 
 
+# 转发TF
 def pubTransformTimeNow(cam_trans,cam_euler,time_now):
-    for plink,slink in UR5_LINKS:
+    for plink,slink in ROBOT_LINKS:
         trans,rot=tf_sub.lookupTransform(plink,slink,rospy.Time(0))
         tf_pub.sendTransform(trans,rot,time_now,slink,plink)
-    cam_euler.append("rxyz")
     tf_pub.sendTransform(cam_trans,tf.transformations.quaternion_from_euler(*cam_euler),time_now,"camera","world")
 
-def genRosCameraInfo(K,P,resolution, time_now):
+def genRosCameraInfo(K,P,resolution):
     '''
     默认参数
     header:
@@ -73,18 +73,18 @@ def genRosCameraInfo(K,P,resolution, time_now):
     caminfo.height = resolution[1]
     caminfo.distortion_model = "plumb_bob"
     caminfo.header.frame_id = "camera"
-    caminfo.header.stamp = time_now
+    # caminfo.header.stamp = time_now
     caminfo.D = [0.0, 0.0, 0.0, 0.0, 0.0]  # 畸变系数，无初始值需要指定
     caminfo.K = K
     caminfo.P = P
     return caminfo
 
 
-def genRosDepthImage(np_img, resolution, time_now):
+def genRosDepthImage(resolution):
     rosImg = Image()
-    rosImg.data = np_img.flatten().tobytes()
+    # rosImg.data = np_img.flatten().tobytes()
     rosImg.header.frame_id = "camera"
-    rosImg.header.stamp = time_now
+    # rosImg.header.stamp = time_now
     rosImg.width = resolution[0]  # 宽
     rosImg.height = resolution[1]  # 高
     rosImg.step = resolution[0] * 4
@@ -110,14 +110,26 @@ def getCameraParameter(clientID, sensorHandle):
         clientID, sensorHandle, vrep.sim_visionintparam_resolution_y, vrep.simx_opmode_oneshot_wait)
     return  nearClip,farClip,angle,(res_x,res_y)
 
-
 UR5_LINKS=[("upper_arm_link","forearm_link"),
 ("shoulder_link","upper_arm_link"),
 ("base_link","shoulder_link"),
 ("forearm_link","wrist_1_link"),
 ("wrist_1_link","wrist_2_link"),
 ("wrist_2_link","wrist_3_link")]
-VISION_SENSOR = 'Vision_sensor#'  # 传感器名称
+BHAND_LINKS=[
+('bh_base_link','bh_finger_31_link'),
+('bh_finger_31_link','bh_finger_32_link'),
+('bh_finger_32_link','bh_finger_33_link'),
+('bh_base_link','bh_finger_21_link'),
+('bh_finger_21_link','bh_finger_22_link'),
+('bh_finger_22_link','bh_finger_23_link'),
+('bh_base_link','bh_finger_11_link'),
+('bh_finger_11_link','bh_finger_12_link'),
+('bh_finger_12_link','bh_finger_13_link')]
+ROBOT_LINKS=UR5_LINKS
+
+
+VISION_SENSOR = 'kinect_depth#'  # 传感器名称
 DISP_DEPTHIMG = False # 是否显示图片
 
 
@@ -125,10 +137,10 @@ vrep.simxFinish(-1)  # 关闭所有连接
 clientID = vrep.simxStart('127.0.0.1', 19997, True, True, 5000, 5)  # 开启连接
 # ros
 rospy.init_node("rgbd_camera")
-tf_pub = tf.TransformBroadcaster(queue_size=10)
+tf_pub = tf.TransformBroadcaster(queue_size=5)
 tf_sub = tf.TransformListener()
 depthimg_pub = rospy.Publisher(
-    "/rgbd_camera/depth/image_raw", Image, queue_size=20)
+    "/rgbd_camera/depth/image_raw", Image, queue_size=5)
 caminfo_pub = rospy.Publisher(
     "/rgbd_camera/depth/camera_info", CameraInfo, queue_size=1,latch=True)
 
@@ -143,19 +155,23 @@ if clientID != -1:
     cam_K,cam_P=getCameraMatrix(angle,resolution) 
     # 相机的位置固定，只变化转角
     err, sensorPos = vrep.simxGetObjectPosition(clientID, sensorHandle, -1, vrep.simx_opmode_oneshot_wait)
+    # 相机欧拉角(默认不动)
+    err2, sensorEuler = vrep.simxGetObjectOrientation(clientID, sensorHandle, -1, vrep.simx_opmode_oneshot_wait)
+    sensorEuler.append("rxyz") #欧拉角顺序xyz
+    
     print("farclip:%s  nearclip:%s" % (farClip, nearClip))
     print("resolution:%s x %s" %(resolution[0],resolution[1]))
     print("perspective_radius:%s"%angle)
     # 发送流传送命令
     err, resolution_, image = vrep.simxGetVisionSensorDepthBuffer(
         clientID, sensorHandle, vrep.simx_opmode_streaming)
+    caminfo_msg=genRosCameraInfo(cam_K,cam_P,resolution)
+    rosimg_msg=genRosDepthImage(resolution)
+
     while (vrep.simxGetConnectionId(clientID) != -1 and not rospy.is_shutdown()):
         # 深度图
         err1, resolution_, img = vrep.simxGetVisionSensorDepthBuffer(
             clientID, sensorHandle, vrep.simx_opmode_buffer)
-        # 相机欧拉角
-        err2, sensorEuler = vrep.simxGetObjectOrientation(
-            clientID, sensorHandle, -1, vrep.simx_opmode_oneshot_wait)
         if err1 == vrep.simx_return_ok:
             time_now = rospy.Time.now()  # 时间
             np_img = np.array(img, dtype=np.float32) 
@@ -163,16 +179,18 @@ if clientID != -1:
             np_img = np_img[:,::-1]# 垂直反转
             ros_img=nearClip+np_img*(farClip-nearClip) #发送给ROS需要转换为实际距离
             #发送深度图
-            depthimg_pub.publish(genRosDepthImage(ros_img, resolution, time_now))
+            rosimg_msg.data=ros_img.flatten().tobytes()
+            rosimg_msg.header.stamp = time_now
+            depthimg_pub.publish(rosimg_msg)
             #发送相机参数
-            caminfo_pub.publish(genRosCameraInfo(cam_K,cam_P,resolution,time_now))
+            caminfo_msg.header.stamp=time_now
+            caminfo_pub.publish(caminfo_msg)
             # 发送tf
             pubTransformTimeNow(sensorPos,sensorEuler,time_now)
             if DISP_DEPTHIMG:
                 # img=cv2.flip(img,1) #水平反转图片
                 np_img=cv2.pyrDown(np_img) #降采样
                 cv2.imshow('Depth image', np_img)
-
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
         elif err == vrep.simx_return_novalue_flag:
