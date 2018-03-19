@@ -24,4 +24,9 @@ DH = [
      a: 0.1007,
      alpha: -90.0}
 ]
-print(123)
+import argparse
+parser=argparse.ArgumentParser(description="my argument")
+parser.add_argument("--name",default="leepengcheng",type=str,help="your name")
+parser.add_argument('--age', default=0.6, type=int,help='your age')
+args=parser.parse_args()
+print(args.name)

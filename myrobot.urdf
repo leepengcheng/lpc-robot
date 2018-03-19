@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<collision xmlns:xacro="http://ros.org/wiki/xacro">
+      <geometry>
+        <box size="123 123 1234"/></geometry>
+    <origin xyz="x y z" rpy="r p y"/></collision>
+    

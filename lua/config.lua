@@ -1,0 +1,43 @@
+--本体关节名称
+roboJointNames={"world_joint",
+            "shoulder_pan_joint",
+            "shoulder_lift_joint",
+            "elbow_joint",
+            "wrist_1_joint",
+            "wrist_2_joint",
+            "wrist_3_joint"}
+--本体连杆名称(含底座)
+roboLinkNames={"base_link_visual",
+            "shoulder_link_visual",
+            "upper_arm_link_visual",
+            "forearm_link_visual",
+            "wrist_1_link_visual",
+            "wrist_2_link_visual",
+            "wrist_3_link_visual"}
+
+--机械手连杆名称
+handLinkNames={"bh_base_link_visual",
+"bh_finger_11_link_visual",
+"bh_finger_12_link_visual",
+"bh_finger_13_link_visual",
+"bh_finger_21_link_visual",
+"bh_finger_22_link_visual",
+"bh_finger_23_link_visual",
+"bh_finger_31_link_visual",
+"bh_finger_32_link_visual",
+"bh_finger_33_link_visual",
+}
+
+--8自由度机械手关节名称
+handJointNames={
+    "bh_base_joint",
+    "bh_j11_joint",
+    "bh_j12_joint",
+    "bh_j13_joint",
+    "bh_j21_joint",
+    "bh_j22_joint",
+    "bh_j23_joint",
+    "bh_j31_joint",
+    "bh_j32_joint",
+    "bh_j33_joint"
+}

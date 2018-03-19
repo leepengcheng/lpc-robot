@@ -1,13 +1,13 @@
--- function include(absolutePathAndFile)
---     if not __notFirst__ then
---         __notFirst__=true
---         __scriptCodeToRun__=assert(loadfile(absolutePathAndFile))
---     end
---     if __scriptCodeToRun__ then
---         __scriptCodeToRun__()
---     end
--- end
--- include('/media/zen/workspace/GitWorkSpace/vrep-control/lua/vrep_robot.lua')
+function include(absolutePathAndFile)
+    if not __notFirst__ then
+        __notFirst__=true
+        __scriptCodeToRun__=assert(loadfile(absolutePathAndFile))
+    end
+    if __scriptCodeToRun__ then
+        __scriptCodeToRun__()
+    end
+end
+include('/media/zen/workspace/GitWorkSpace/vrep-control/lua/vrep_robot.lua')
 
 
 
