@@ -7,25 +7,25 @@ roboJointNames={"world_joint",
             "wrist_2_joint",
             "wrist_3_joint"}
 --本体连杆名称(含底座)
-roboLinkNames={"base_link_visual",
-            "shoulder_link_visual",
-            "upper_arm_link_visual",
-            "forearm_link_visual",
-            "wrist_1_link_visual",
-            "wrist_2_link_visual",
-            "wrist_3_link_visual"}
+roboLinkNames={"base_link",
+            "shoulder_link",
+            "upper_arm_link",
+            "forearm_link",
+            "wrist_1_link",
+            "wrist_2_link",
+            "wrist_3_link"}
 
 --机械手连杆名称
-handLinkNames={"bh_base_link_visual",
-"bh_finger_11_link_visual",
-"bh_finger_12_link_visual",
-"bh_finger_13_link_visual",
-"bh_finger_21_link_visual",
-"bh_finger_22_link_visual",
-"bh_finger_23_link_visual",
-"bh_finger_31_link_visual",
-"bh_finger_32_link_visual",
-"bh_finger_33_link_visual",
+handLinkNames={"bh_base_link",
+"bh_finger_11_link",
+"bh_finger_12_link",
+"bh_finger_13_link",
+"bh_finger_21_link",
+"bh_finger_22_link",
+"bh_finger_23_link",
+"bh_finger_31_link",
+"bh_finger_32_link",
+"bh_finger_33_link",
 }
 
 --8自由度机械手关节名称

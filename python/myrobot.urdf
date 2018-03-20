@@ -49,8 +49,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.1472 0.1836 0.024"/></geometry>
-    <origin xyz="-0.009 -0.0182 0.0" rpy="0.0 -1.5708 0.0"/></collision>
+        <box size="0.147213 0.183552 0.024058"/></geometry>
+    <origin xyz="2.7e-05 -0.018225 0.009018" rpy="-0.0 -0.0 -0.0"/></collision>
     <inertial>
       <mass value="4.0"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -76,8 +76,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.119 0.1303 0.1337"/></geometry>
-    <origin xyz="-0.0 0.0054 0.0017" rpy="0.0 0.0 0.0002"/></collision>
+        <box size="0.118743 0.130248 0.13371"/></geometry>
+    <origin xyz="0.000129 0.005378 0.001605" rpy="0.0 -0.0 0.0"/></collision>
     <inertial>
       <mass value="3.7"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -103,8 +103,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.5446 0.1338 0.1194"/></geometry>
-    <origin xyz="-0.0002 -0.2126 0.0017" rpy="0.0 -1.5703 -1.5708"/></collision>
+        <box size="0.543115 0.133547 0.119571"/></geometry>
+    <origin xyz="0.001241 0.001563 0.212346" rpy="0.0 -1.57079632679 0.0"/></collision>
     <inertial>
       <mass value="8.393"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.28"/>
@@ -130,8 +130,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.4893 0.1117 0.1165"/></geometry>
-    <origin xyz="0.0003 -0.1866 -0.0013" rpy="0.0 -1.5708 -1.5708"/></collision>
+        <box size="0.488926 0.111667 0.116547"/></geometry>
+    <origin xyz="0.000261 -0.001323 0.186815" rpy="-0.0 -1.57079632679 0.0"/></collision>
     <inertial>
       <mass value="2.275"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.25"/>
@@ -157,8 +157,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.0776 0.085 0.1047"/></geometry>
-    <origin xyz="0.0001 0.0048 0.09" rpy="-1.5708 -0.0 3.1416"/></collision>
+        <box size="0.077432 0.085013 0.104678"/></geometry>
+    <origin xyz="0.000173 0.089994 -0.004837" rpy="3.14159265359 -0.0 3.14159265359"/></collision>
     <inertial>
       <mass value="1.219"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -184,8 +184,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.0776 0.1047 0.0842"/></geometry>
-    <origin xyz="-0.0001 -0.0049 0.0913" rpy="3.1416 0.0 3.1416"/></collision>
+        <box size="0.077329 0.104691 0.084234"/></geometry>
+    <origin xyz="-0.000226 -0.004842 0.09119" rpy="3.14159265359 -0.0 3.14159265359"/></collision>
     <inertial>
       <mass value="1.219"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -211,8 +211,8 @@
     </visual>
     <collision>
       <geometry>
-        <box size="0.075 0.0345 0.0805"/></geometry>
-    <origin xyz="-0.0 -0.0027 0.0646" rpy="-1.5708 -0.0 3.1416"/></collision>
+        <box size="0.075031 0.034501 0.080516"/></geometry>
+    <origin xyz="-0.0 0.064575 0.002742" rpy="3.14159265359 0.0 3.14159265359"/></collision>
     <inertial>
       <mass value="0.1879"/>
       <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
@@ -229,7 +229,7 @@
       <geometry>
         <box size="0.01 0.01 0.01"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="-0.01 0 0"/>
+      <origin rpy="-0.0 -0.0 -3.14159265359" xyz="0.01 -0.0 -0.0"/>
     </collision>
   </link>
   <transmission name="shoulder_pan_trans">
@@ -333,10 +333,9 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 0 " xyz="0 0 0"/>
+      <origin rpy="1.57079632679 0 1.57079632679" xyz="0 0 0.030006"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/palm_282.dae"/>
-      </geometry>
+        <box size="0.08892 0.06004 0.089018"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -356,10 +355,9 @@
       <material name="Black"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="-0.04 0 0"/>
+      <origin rpy="3.14159265359 0.000345067999014 -1.57079632679" xyz="-0.048249 1.8e-05 -0.021487"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/knuckle_fixed.dae"/>
-      </geometry>
+        <box size="0.024006 0.026001 0.042975"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -385,10 +383,9 @@
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.61327086137 1.57079349837 1.52832179231" xyz="-0.033337 0.002998 0.00082"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/finger.dae"/>
-      </geometry>
+        <box size="0.021007 0.02532 0.091919"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -427,10 +424,9 @@
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="-1.83185249371 1.56948922525 -2.61968012955" xyz="-0.017143 0.017275 0.000622"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/finger_tip.dae"/>
-      </geometry>
+        <box size="0.023015 0.019019 0.06774"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -471,10 +467,9 @@
       <material name="Green"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.41347017877 -0.0 -1.57079632679" xyz="-0.025851 1.3e-05 0.020952"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/knuckle.dae"/>
-      </geometry>
+        <box size="0.024609 0.048139 0.08193"/></geometry>
     </collision>
   </link>
   <!-- joint between BH_palm_link and BH_finger_11_link -->
@@ -512,10 +507,9 @@
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="-2.39866902477 -1.57079232679 2.31371995573" xyz="-0.033337 0.002987 0.00078"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/finger.dae"/>
-      </geometry>
+        <box size="0.021008 0.025315 0.091919"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -554,10 +548,9 @@
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="3.07076908672 -1.57079185466 2.42726797793" xyz="-0.017202 0.017223 0.000577"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/finger_tip.dae"/>
-      </geometry>
+        <box size="0.023012 0.019021 0.06776"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -598,10 +591,9 @@
       <material name="Green"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="1.41347017877 -0.0 -1.57079632679" xyz="-0.025851 1.3e-05 0.02097"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/knuckle.dae"/>
-      </geometry>
+        <box size="0.024609 0.048139 0.081928"/></geometry>
     </collision>
   </link>
   <!-- joint between BH_palm_link and BH_finger_21_link -->
@@ -640,10 +632,9 @@
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="-2.39866902477 -1.57079232679 2.31371995573" xyz="-0.033336 0.003005 0.00078"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/finger.dae"/>
-      </geometry>
+        <box size="0.021007 0.025315 0.091919"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>
@@ -682,10 +673,9 @@
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="3.07076908672 -1.57079185466 2.42726797793" xyz="-0.017202 0.01724 0.000577"/>
       <geometry>
-        <mesh filename="package://barrett_hand_description/meshes/finger_tip.dae"/>
-      </geometry>
+        <box size="0.023013 0.019021 0.067759"/></geometry>
       <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
     </collision>
   </link>

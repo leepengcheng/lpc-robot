@@ -64,14 +64,14 @@ handLinkHandles={}
 
 --机械本体的句柄
 for i=1,#roboLinkNames,1 do
-    roboLinkHandles[i]=simGetObjectHandle(roboLinkNames[i])
+    roboLinkHandles[i]=simGetObjectHandle(roboLinkNames[i].."_visual")
 end
 for i=1,#roboJointNames,1 do
     roboJointHandles[i]=simGetObjectHandle(roboJointNames[i])
 end
 --机械手的句柄
 for i=1,#handLinkNames,1 do
-    handLinkHandles[i]=simGetObjectHandle(handLinkNames[i])
+    handLinkHandles[i]=simGetObjectHandle(handLinkNames[i].."_visual") --添加_visual后缀
 end
 for i=1,#handJointNames,1 do
     handJointHandles[i]=simGetObjectHandle(handJointNames[i])
