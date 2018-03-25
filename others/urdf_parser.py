@@ -303,3 +303,4 @@ urdf.write("myrobot.urdf", xml_declaration=True,
 
 print("finished!")
 
+Failed to load nodelet '/kinect2_bridge`
