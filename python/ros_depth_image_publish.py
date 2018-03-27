@@ -41,7 +41,7 @@ def pubTransformTimeNow(cam_trans, cam_euler, time_now):
         trans, rot = tf_sub.lookupTransform(plink, slink, rospy.Time(0))
         tf_pub.sendTransform(trans, rot, time_now, slink, plink)
     tf_pub.sendTransform(cam_trans, tf.transformations.quaternion_from_euler(
-        *cam_euler), time_now, "rgbd_camera_link", "base_link")
+        *cam_euler), time_now, "rgbd_camera_link", "world")
 
 
 def genRosCameraInfo(K, P, resolution):
@@ -109,12 +109,13 @@ def getCameraParameter(clientID, sensorHandle):
     return nearClip, farClip, angle, (res_x, res_y)
 
 #UR5 本体LINK
-UR5_LINKS = [("upper_arm_link", "forearm_link"),
+UR5_LINKS = [("base_link", "shoulder_link"),
              ("shoulder_link", "upper_arm_link"),
-             ("base_link", "shoulder_link"),
+             ("upper_arm_link", "forearm_link"),
              ("forearm_link", "wrist_1_link"),
              ("wrist_1_link", "wrist_2_link"),
-             ("wrist_2_link", "wrist_3_link")]
+             ("wrist_2_link", "wrist_3_link"),
+             ("wrist_3_link","ee_link")]
 #SEVEN_DOF 本体+爪子LINK
 SEVEN_DOF_LINKS = [
     ('base_link', 'shoulder_pan_link'),
@@ -137,8 +138,8 @@ BHAND_LINKS = [
     ('bh_finger_12_link', 'bh_finger_13_link')]
 
 # ROBOT_LINKS = UR5_LINKS   #UR5
-# ROBOT_LINKS = UR5_LINKS + BHAND_LINKS #UR5+HAND
-ROBOT_LINKS =SEVEN_DOF_LINKS #SEVEN_DOF+HAND
+ROBOT_LINKS = UR5_LINKS + BHAND_LINKS #UR5+HAND
+# ROBOT_LINKS =SEVEN_DOF_LINKS #SEVEN_DOF+HAND
 
 
 VISION_SENSOR = 'kinect_depth#'  # 传感器名称
