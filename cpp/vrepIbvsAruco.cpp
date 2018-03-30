@@ -75,11 +75,11 @@ int main()
     printf("Successfully Connected to remote API server\n");
     //获得相机句柄
     int camHandle=0;
-    simxGetObjectHandle(clientID,"Vision_sensor#",&camHandle,simx_opmode_oneshot_wait);
+    simxGetObjectHandle(clientID,"kinect_rgb",&camHandle,simx_opmode_oneshot_wait);
 
-    //获得物体的句柄
-    int objectHandle=0;
-    simxGetObjectHandle(clientID,"Sphere",&objectHandle,simx_opmode_oneshot_wait);
+//    //获得物体的句柄
+//    int kinectHandle=0;
+//    simxGetObjectHandle(clientID,"kinect",&kinectHandle,simx_opmode_oneshot_wait);
 
 
     //获得深度相机的近景和远景距离
@@ -119,7 +119,7 @@ int main()
 
 
 
-    vpHomogeneousMatrix cdMo(0, 0, 1, vpMath::rad(180),0, 0);//终止时对象在相机中的位姿
+    vpHomogeneousMatrix cdMo(0, 0, 0.5, vpMath::rad(180),0, 0);//终止时对象在相机中的位姿
     vpHomogeneousMatrix cMo(0, 0, 0.2, 0, vpMath::rad(180), 0);//初始时对象在相机坐标系中的位姿
     //虚拟特征点
     vector<vpPoint> points;
