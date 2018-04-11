@@ -9,37 +9,40 @@ project(robot_server)
 # certain functions and headers.  The definition below enables compiling
 # for a ROS node.
 add_definitions(-DLINUXSOCKETS=1)  #use linux sockets for communication
-add_definitions(-DLOG=1)  #use linux sockets for communication
+add_definitions(-DSTDIOLOG=1)  #use linux sockets for communication
 add_definitions(-std=c++11)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread")
+
 set(SRC_FILES src/byte_array.cpp
 	src/simple_message.cpp
-	src/smpl_msg_connection.cpp
+        src/smpl_msg_connection.cpp
 
 	src/socket/simple_socket.cpp
-	src/socket/udp_socket.cpp
-	src/socket/udp_client.cpp
-	src/socket/udp_server.cpp
+#	src/socket/udp_socket.cpp
+#	src/socket/udp_client.cpp
+#	src/socket/udp_server.cpp
 	src/socket/tcp_socket.cpp
-	src/socket/tcp_client.cpp
+#	src/socket/tcp_client.cpp
 	src/socket/tcp_server.cpp
 
-	src/message_handler.cpp
-	src/message_manager.cpp
-	src/ping_handler.cpp
-	src/ping_message.cpp
+#	src/message_handler.cpp
+#	src/message_manager.cpp
+#	src/ping_handler.cpp
+#	src/ping_message.cpp
 	src/joint_data.cpp
 	src/joint_feedback.cpp
 	src/joint_traj_pt.cpp
-	src/joint_traj_pt_full.cpp
+#	src/joint_traj_pt_full.cpp
 	src/joint_traj.cpp
 	src/robot_status.cpp
 
-	src/messages/joint_message.cpp
+        src/messages/joint_message.cpp
 	src/messages/joint_feedback_message.cpp
 	src/messages/joint_traj_pt_message.cpp
-	src/messages/joint_traj_pt_full_message.cpp
+#	src/messages/joint_traj_pt_full_message.cpp
 	src/messages/robot_status_message.cpp
-	src/simple_comms_fault_handler.cpp)
+#	src/simple_comms_fault_handler.cpp
+        )
 					
 set(TEST_SRC_FILES test/utest.cpp test/utest_message.cpp   test/server_test.cpp)
 include_directories(${PROJECT_SOURCE_DIR}/include)

@@ -148,10 +148,10 @@ void threadExecuteMotion()
     while(true)
     {
         //当轨迹被读取锁定
-//        if(trajLockFlag.load())
-//        {
-//            continue;
-//        }
+        if(trajLockFlag.load())
+        {
+            continue;
+        }
         //上锁
         trajLockFlag.store(true);
         //执行轨迹

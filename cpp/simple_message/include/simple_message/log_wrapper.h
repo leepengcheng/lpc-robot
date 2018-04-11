@@ -40,6 +40,7 @@
 #include "motoPlus.h"
 #endif
 
+#include <stdio.h>
 namespace industrial
 {
 
@@ -87,10 +88,10 @@ do \
   printf(format, ##__VA_ARGS__); \
   printf("\n"); \
   } while (0)
-
 // WARNING: LOG_COMM produces many messages and could slow down program
 // execution on the robot.
-#define LOG_COMM(format, ...)  LOG("COMM", format, ##__VA_ARGS__) 
+//#define LOG_COMM(format, ...)  LOG("COMM", format, ##__VA_ARGS__)
+#define LOG_COMM(format, ...)
 #define LOG_DEBUG(format, ...) LOG("DEBUG", format, ##__VA_ARGS__) 
 #define LOG_INFO(format, ...)  LOG("INFO", format, ##__VA_ARGS__)
 #define LOG_WARN(format, ...)  LOG("WARNING", format, ##__VA_ARGS__)
