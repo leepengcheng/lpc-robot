@@ -17,6 +17,7 @@ extern "C" {
 #define DISP_IMAGE  0  //是否显示图片
 
 
+//计算图像的位姿
 bool getMarkerPoseImage(cv::InputArray img,const cv::Ptr<cv::aruco::Dictionary> &dict,cv::InputArray camMat,
                         cv::InputArray distMat,cv::OutputArray rvecs,cv::OutputArray tvecs)
 {
@@ -33,32 +34,37 @@ bool getMarkerPoseImage(cv::InputArray img,const cv::Ptr<cv::aruco::Dictionary> 
 
     return 0;
 }
+
+//根据相机速度和采样时间计算位姿的变化量矩阵,等价于v*timeStep
 vpHomogeneousMatrix getStepDelta(const vpColVector &v, const float &timeStep)
 {
-    double theta, si, co, sinc, mcosc, msinc;
+//    double theta, si, co, sinc, mcosc, msinc;
     //单个仿真步后的位姿变化量
     vpColVector v_dt = v * timeStep;
     //旋转部分
-    vpThetaUVector u(v_dt[3],v_dt[4],v_dt[5]);
-    vpRotationMatrix rd;
-    rd.buildFrom(u);
-    //平移部分
-    vpTranslationVector dt;
-    theta = sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
-    si = sin(theta);
-    co = cos(theta);
-    sinc = vpMath::sinc(si, theta);
-    mcosc = vpMath::mcosc(co, theta);
-    msinc = vpMath::msinc(si, theta);
-    dt[0] = v_dt[0] * (sinc + u[0] * u[0] * msinc) + v_dt[1] * (u[0] * u[1] * msinc - u[2] * mcosc) +
-            v_dt[2] * (u[0] * u[2] * msinc + u[1] * mcosc);
-    dt[1] = v_dt[0] * (u[0] * u[1] * msinc + u[2] * mcosc) + v_dt[1] * (sinc + u[1] * u[1] * msinc) +
-            v_dt[2] * (u[1] * u[2] * msinc - u[0] * mcosc);
-    dt[2] = v_dt[0] * (u[0] * u[2] * msinc - u[1] * mcosc) + v_dt[1] * (u[1] * u[2] * msinc + u[0] * mcosc) +
-            v_dt[2] * (sinc + u[2] * u[2] * msinc);
+//    vpThetaUVector u(v_dt[3],v_dt[4],v_dt[5]);
+//    vpRotationMatrix rd;
+//    rd.buildFrom(u);
+//    //平移部分
+//    vpTranslationVector dt;
+//    theta = sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
+//    si = sin(theta);
+//    co = cos(theta);
+//    sinc = vpMath::sinc(si, theta);
+//    mcosc = vpMath::mcosc(co, theta);
+//    msinc = vpMath::msinc(si, theta);
+//    dt[0] = v_dt[0] * (sinc + u[0] * u[0] * msinc) + v_dt[1] * (u[0] * u[1] * msinc - u[2] * mcosc) +
+//            v_dt[2] * (u[0] * u[2] * msinc + u[1] * mcosc);
+//    dt[1] = v_dt[0] * (u[0] * u[1] * msinc + u[2] * mcosc) + v_dt[1] * (sinc + u[1] * u[1] * msinc) +
+//            v_dt[2] * (u[1] * u[2] * msinc - u[0] * mcosc);
+//    dt[2] = v_dt[0] * (u[0] * u[2] * msinc - u[1] * mcosc) + v_dt[1] * (u[1] * u[2] * msinc + u[0] * mcosc) +
+//            v_dt[2] * (sinc + u[2] * u[2] * msinc);
     vpHomogeneousMatrix Delta;
-    Delta.insert(rd);
-    Delta.insert(dt);
+//    Delta.insert(rd);
+//    Delta.insert(dt);
+
+    Delta.buildFrom(v_dt[0],v_dt[1],v_dt[2],v_dt[3],v_dt[4],v_dt[5]);
+
     return Delta;
 }
 
@@ -219,6 +225,7 @@ int main()
             {
                 cv::imshow("Opencv image",oimage); //显示图片
             }
+            extApi_sleepMs(10);//暂停10ms
             if(cv::waitKey(1)==27) //如果1ms内按下esc则推出
             {
                 cv::destroyAllWindows();

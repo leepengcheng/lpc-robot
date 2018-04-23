@@ -13,7 +13,7 @@ add_definitions(-DNON_MATLAB_PARSING -DMAX_EXT_API_CONNECTIONS=255 -DLIN_VREP)
 
 #set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-# 添加vrep includeq
+# 添加vrep include
 if(DEFINED ENV{VREP_ROOT})
     set(VREP_REMOTE_DIR  $ENV{VREP_ROOT}/programming/remoteApi)
     set(VREP_INCLUDE_DIRS ${VREP_REMOTE_DIR} $ENV{VREP_ROOT}/programming/include)
@@ -31,17 +31,24 @@ endif()
 set(VREP_LIBS $ENV{VREP_ROOT}/programming/remoteApiBindings/lib/lib/64Bit/remoteApi.so)
 LINK_LIBRARIES(${VREP_LIBS})
 
+set(demos 
+vrepIbvsAruco_1.cpp
+vrepIbvsAruco_2.cpp)
 
-# add_executable(vrepHalcon vrepHalcon.cpp)
-add_executable(vrepIbvsAruco  vrepIbvsAruco.cpp)
+
 
 
 find_package(OpenCV 3 REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(VISP REQUIRED visp_core  visp_vs visp_blob visp_vision visp_io)
+find_package(VISP REQUIRED visp_core  visp_vs visp_robot)
 
 
 include_directories(${VREP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
-include_directories(${VISP_INCLUDE_DIRS})
 
-target_link_libraries(vrepIbvsAruco ${OpenCV_LIBS} ${VISP_LIBS} pthread)
+# add_executable(vrepHalcon vrepHalcon.cpp)
+
+foreach(file_cpp ${demos})
+    get_filename_component(target ${file_cpp} NAME_WE)
+    add_executable(${target}  ${file_cpp})
+    target_link_libraries(${target}  ${OpenCV_LIBS} ${VISP_LIBS} pthread)
+endforeach()
