@@ -7,6 +7,7 @@
 #include <visp3/vs/vpServo.h>
 #include <visp3/core/vpConvert.h>
 #include <visp3/robot/vpSimulatorPioneer.h>
+#include <visp3/robot/vpRobotTemplate.h>
 //#include <math.h>
 
 using namespace std;
