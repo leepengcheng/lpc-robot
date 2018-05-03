@@ -148,7 +148,7 @@ findSeveralCollisionFreeConfigs=function(matrix,trialCnt,maxConfigs)
     -- trialCnt:尝试寻找目标构型的次数
     -- maxConfigs:返回成功构型的最大个数
     -- cs:返回计算出的目标构型的table，大小为N*6的二维数组,N<=maxConfigs
-    simSetObjectMatrix(ikTarget,-1,matrix) --将目标设置为target
+    -- simSetObjectMatrix(ikTarget,-1,matrix) --将目标设置为target
     local cc=getConfig()
     local cs={}
     local l={}
@@ -248,6 +248,7 @@ findPath=function(startConfig,goalConfigs,cnt)
     --部分关节的运动范围过大,例如+-10'000,将会导致搜索空间过大/速度过慢/效率降低,所以限制关节的运动范围
     local jointLimitsL={}
     local jointLimitsH={}
+    
     for i=1,#jh,1 do
         jointLimitsL[i]=startConfig[i]-360*math.pi/180
         if jointLimitsL[i]<-10000 then jointLimitsL[i]=-10000 end
@@ -293,7 +294,7 @@ findPath=function(startConfig,goalConfigs,cnt)
         -- end
         --参数：maxSimplificationTime,用于简化路径的时间，-1表示默认；stateCnt：返回的差值路径点(构型)数量
         local res,_path=simExtOMPL_compute(task,maxOMPLCalculationTime,-1,configCount)
-        if res>0 and _path then
+        if res and _path then
             local _l=getPathLength(_path)
             if _l<l then
                 l=_l
