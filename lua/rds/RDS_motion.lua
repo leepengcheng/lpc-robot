@@ -63,8 +63,8 @@ end
 --@joints:关节值
 applyJoints=function(jointHandles,joints)
     for i=1,#jointHandles,1 do
-        sim.setJointTargetPosition(jointHandles[i],joints[i])
-        -- simSetJointPosition(jointHandles[i],joints[i])
+        -- sim.setJointTargetPosition(jointHandles[i],joints[i])
+        sim.setJointPosition(jointHandles[i],joints[i])
     end
 end
 
@@ -119,6 +119,27 @@ forbidThreadSwitches=function(forbid)
     end
 end
 
+
+--获取当关节的限位范围
+--@return:jointLimitsL/jointRanges 关节下限/关节范围
+function getJointLimits()
+    local jointLimitsL={}
+    local jointRanges={}
+    for i=1,#jh,1 do
+        --获取关节的参数:是否循环/下限/区间
+        cyclic,interval= sim.getJointInterval(jh[i])
+        if cyclic then
+            --设置范围为[-pi,pi]
+            jointLimitsL[i],jointRanges[i]=-math.pi,2*math.pi
+        else
+            jointLimitsL[i],jointRanges[i]=interval[1],interval[2]
+        end
+    end
+    return jointLimitsL,jointRanges
+end
+
+
+
 -- 寻找1个无碰撞且满足目标位姿构型
 -- @matrix:指定末端的位姿
 findCollisionFreeConfig=function(matrix)
@@ -126,17 +147,7 @@ findCollisionFreeConfig=function(matrix)
     sim.setObjectMatrix(ikTarget,-1,matrix)
     --修改关节的运动范围,减少搜索空间
     local cc=getConfig()
-    local jointLimitsL={}
-    local jointRanges={}
-    for i=1,#jh,1 do
-        --获取关节的参数:是否循环/下限/区间
-        cyclic,interval= sim.getJointInterval(jh[i])
-        if cyclic then
-            jointLimitsL[i],jointRanges[i]=-math.pi,2*math.pi
-        else
-            jointLimitsL[i],jointRanges[i]=interval[1],interval[2]
-        end
-    end
+    local jointLimitsL.jointRanges=getJointLimits()
 
     --jh:关节句柄 
     -- 0.65：当distance小于该值时，进行IK解算至目标位置，过大会导致IK计算量过大，过小会导致小步的迭代
@@ -261,8 +272,12 @@ end
 --计算起始构型到目标构型的路径，每个目标构型计算cnt次
 --返回最短的路径以及长度(构型空间的能量距离)
 --部分关节的运动范围过大,例如+-10'000,将会导致搜索空间过大/速度过慢/效率降低,所以限制关节的运动范围
+--@startConfig:初始构型
+--@goalConfigs:目标构型
+--@cnt:
 findPath=function(startConfig,goalConfigs,cnt)
 
+    --重新调整2/3关节的运动范围(这2个关节的能量消耗最大)
     local jointLimitsL={}
     local jointLimitsH={}
     for i=1,#jh,1 do
@@ -271,7 +286,6 @@ findPath=function(startConfig,goalConfigs,cnt)
         jointLimitsH[i]=startConfig[i]+360*math.pi/180
         if jointLimitsH[i]>10000 then jointLimitsH[i]=10000 end
     end
-    --设置2/3关节的运动范围(这2个关节的能量消耗最大)
     jointLimitsL[2]=47*math.pi/180
     jointLimitsH[2]=313*math.pi/180
     jointLimitsL[3]=19*math.pi/180
@@ -491,87 +505,88 @@ function pathPlaning()
 end
 
 --################主程序########################--
-jh={-1,-1,-1,-1,-1,-1,-1} --获取关节句柄
-jt={-1,-1,-1,-1,-1,-1,-1} --获取关节类型
-for i=1,7,1 do
-    jh[i]=sim.getObjectHandle('j'..i) 
-    jt[i]=sim.getJointType(jh[i])     
-end
-rdsHandle=sim.getObjectHandle('RDS_01')    
-ikTarget=sim.getObjectHandle('RDS_01_target')
-ikTip=sim.getObjectHandle('RDS_01_tip')
-ikPINV=sim.getIkGroupHandle('RDS_IK_PINV') --Ik伪逆
-ikDLS=sim.getIkGroupHandle('RDS_IK_DLS') --IK DLS
-target0=sim.getObjectHandle('jacoTarget0')
-target1=sim.getObjectHandle('jacoTarget1')
-target2=sim.getObjectHandle('jacoTarget2')
-------------------------------------------------------
-collisionHandle=sim.getCollectionHandle("CollisionObjects") --机械臂的碰撞对象集合的句柄
-configCount=200
-sim.setStringSignal("command","start")       --初始化启动信号
-sim.setIntegerSignal("configNumer_1",1)        --初始当前路径点标识(1~configCount)
---获得目标
-
---@@@@@@@@@@@@@@@@@@@@@@@@参数表@@@@@@@@@@@@@@@@@@@@@@@@
---碰撞对：1-2:机械臂本身不发生碰撞，3-4：机械臂和其他的对象不发生碰撞
-collisionPairs={sim.getCollectionHandle('RDS_01'),sim.getCollectionHandle('RDS_01'),sim.getCollectionHandle('RDS_01'),collisionHandle}
-maxVel=1    --最大速度
-maxAccel=1  --最大加速度
-maxJerk=8000 --最大加加速度
-forbidLevel=0 
-metric={0.2,1,0.8,0.1,0.1,0.1} --关节能量权重
-ikSteps=20                     --Ik
-maxOMPLCalculationTime=4 -- 单次路径规划的最长允许时间，单位s
--- sim_ompl_algorithm_BKPIECE1
-OMPLAlgo=simOMPL.Algorithm.BKPIECE1 -- OMPL路径规划所用的算法
-numberOfOMPLCalculationsPasses=4 -- 单个目标构型的路径规划最大次数
--- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
---清除上次生成的路径
-sim.writeCustomDataBlock(rdsHandle,'',nil)
-
-repeat
-    
-    path,lengths=pathPlaning()
-    --如果找到最短路径则保存路径和能量累加值
-    if path then
-        sim.addStatusbarMessage("路径规划成功，保存该路径")
-        savePath('jacoPath_1',path,lengths)
-        visualizePath(path)--可视化路径
-        --路径参数化，然后执行
-        sim.addStatusbarMessage("执行动作1: 达到目标姿态点")
-        replan=executeMotion(path,lengths,maxVel,maxAccel,maxJerk,"configNumer_1")
-    else
-        sim.addStatusbarMessage('未搜索到可用路径,路径规划失败')
-        return
+function sysCall_threadmain()
+    jh={-1,-1,-1,-1,-1,-1,-1} --获取关节句柄
+    jt={-1,-1,-1,-1,-1,-1,-1} --获取关节类型
+    for i=1,7,1 do
+        jh[i]=sim.getObjectHandle('j'..i) 
+        jt[i]=sim.getJointType(jh[i])     
     end
-until(replan~=1)
+    rdsHandle=sim.getObjectHandle('RDS_01')    
+    ikTarget=sim.getObjectHandle('RDS_01_target')
+    ikTip=sim.getObjectHandle('RDS_01_tip')
+    ikPINV=sim.getIkGroupHandle('RDS_IK_PINV') --Ik伪逆
+    ikDLS=sim.getIkGroupHandle('RDS_IK_DLS') --IK DLS
+    target0=sim.getObjectHandle('jacoTarget0')
+    target1=sim.getObjectHandle('jacoTarget1')
+    target2=sim.getObjectHandle('jacoTarget2')
+    ------------------------------------------------------
+    collisionHandle=sim.getCollectionHandle("CollisionObjects") --机械臂的碰撞对象集合的句柄
+    configCount=200
+    sim.setStringSignal("command","start")       --初始化启动信号
+    sim.setIntegerSignal("configNumer_1",1)        --初始当前路径点标识(1~configCount)
+    --获得目标
+
+    --@@@@@@@@@@@@@@@@@@@@@@@@参数表@@@@@@@@@@@@@@@@@@@@@@@@
+    --碰撞对：1-2:机械臂本身不发生碰撞，3-4：机械臂和其他的对象不发生碰撞
+    collisionPairs={sim.getCollectionHandle('RDS_01'),sim.getCollectionHandle('RDS_01'),sim.getCollectionHandle('RDS_01'),collisionHandle}
+    maxVel=1    --最大速度
+    maxAccel=1  --最大加速度
+    maxJerk=8000 --最大加加速度
+    forbidLevel=0 
+    metric={0.2,1,0.8,0.1,0.1,0.1} --关节能量权重
+    ikSteps=20                     --Ik
+    maxOMPLCalculationTime=4 -- 单次路径规划的最长允许时间，单位s
+    -- sim_ompl_algorithm_BKPIECE1
+    OMPLAlgo=simOMPL.Algorithm.BKPIECE1 -- OMPL路径规划所用的算法
+    numberOfOMPLCalculationsPasses=4 -- 单个目标构型的路径规划最大次数
+    -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    --清除上次生成的路径
+    sim.writeCustomDataBlock(rdsHandle,'',nil)
+
+    repeat
+        path,lengths=pathPlaning()
+        --如果找到最短路径则保存路径和能量累加值
+        if path then
+            sim.addStatusbarMessage("路径规划成功，保存该路径")
+            savePath('jacoPath_1',path,lengths)
+            visualizePath(path)--可视化路径
+            --路径参数化，然后执行
+            sim.addStatusbarMessage("执行动作1: 达到目标姿态点")
+            replan=executeMotion(path,lengths,maxVel,maxAccel,maxJerk,"configNumer_1")
+        else
+            sim.addStatusbarMessage('未搜索到可用路径,路径规划失败')
+            return
+        end
+    until(replan~=1)
 
 
--- --靠近杯子(IK)
-sim.addStatusbarMessage("执行动作2：靠近杯子(逆解算)")
-local m=getShiftedMatrix(sim.getObjectMatrix(target1,-1),{0,0.01,0},-1)
-path,lengths=generateIkPath(getConfig(),m,ikSteps,true) --不考虑避障
-if path then
-    executeMotion(path,lengths,maxVel,maxAccel,maxJerk,"configNumer_2")
+    -- -- --靠近杯子(IK)
+    -- sim.addStatusbarMessage("执行动作2：靠近杯子(逆解算)")
+    -- local m=getShiftedMatrix(sim.getObjectMatrix(target1,-1),{0,0.01,0},-1)
+    -- path,lengths=generateIkPath(getConfig(),m,ikSteps,true) --不考虑避障
+    -- if path then
+    --     executeMotion(path,lengths,maxVel,maxAccel,maxJerk,"configNumer_2")
+    -- end
+
+
+
+    -- -- -- -- 合并机械手,抓住杯子
+    -- sim.addStatusbarMessage("执行动作3：合并机械手")
+    -- sim.setIntegerSignal('RG2_open',1)
+    -- sim.wait(1.5)
+
+
+
+    -- -- -- 举起杯子(IK)
+    -- sim.addStatusbarMessage("执行动作4：举起杯子(逆解算)")
+    -- local m=sim.getObjectMatrix(target2,-1)
+    -- path,lengths=generateIkPath(getConfig(),m,ikSteps,true)
+    -- if path then
+    --     executeMotion(path,lengths,maxVel,maxAccel,maxJerk,"configNumer_3")
+    -- end
+
 end
-
-
-
--- -- -- 合并机械手,抓住杯子
-sim.addStatusbarMessage("执行动作3：合并机械手")
-sim.setIntegerSignal("hand",1)
-sim.wait(1.5)
-
-
-
--- -- 举起杯子(IK)
-sim.addStatusbarMessage("执行动作4：举起杯子(逆解算)")
-local m=sim.getObjectMatrix(target2,-1)
-path,lengths=generateIkPath(getConfig(),m,ikSteps,true)
-if path then
-    executeMotion(path,lengths,maxVel,maxAccel,maxJerk,"configNumer_3")
-end
-
 
 

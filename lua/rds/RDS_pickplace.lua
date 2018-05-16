@@ -86,7 +86,7 @@ function enableAutoIK(isenable)
 end
 
 
-pickAction=function(pickData,relVel)
+pickAction=function(relVel)
 
     openGripper(true)   --打开爪子
     enableAutoIK(false) --关闭自动IK
@@ -159,7 +159,6 @@ function sysCall_threadmain()
     movementAcceleration=2 --末端加速度
     jointVelocity=math.pi*0.6 --关节速度
     jointAcceleration=10 --关节加速度
-
 
     pickAndPlace({0.6,0,0.2},{math.pi,0,0},false,1)
 
