@@ -1,4 +1,6 @@
 import paho.mqtt.client as mqtt
+import time
+import os
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
@@ -12,13 +14,16 @@ def on_message(client, userdata, msg):
     print(msg.topic+" "+str(msg.payload))
 
 client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
+# client.on_connect = on_connect
+# client.on_message = on_message
 
-client.connect("localhost", 1883, 60)
+client.connect("localhost", 1234, 60)
 
 # Blocking call that processes network traffic, dispatches callbacks and
 # handles reconnecting.
 # Other loop*() functions are available that give a threaded interface and a
 # manual interface.
-client.loop_forever()
+# client.loop_forever()
+# for x in range(1000):
+#     client.publish("/lpc","BBBBB")
+#     time.sleep(0.1)
