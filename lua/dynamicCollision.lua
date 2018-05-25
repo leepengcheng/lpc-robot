@@ -173,7 +173,3 @@ if (sim_call_type==sim_childscriptcall_actuation) then
     -- thisTime=simGetSimulationTime()
     
 end
-
-
-
-    

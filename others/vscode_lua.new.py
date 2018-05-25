@@ -27,23 +27,27 @@ def parseApiDocument(apiHtmlFile,isRemoteAPi=True):
                 paramsNode=apiTable.xpath(".//td[@class='remApiTableRightCParam']/div/strong")
             else:
                 paramsNode=apiTable.xpath(".//td[@class='apiTableRightCParam']/div")
+            param_index=1
             for p in paramsNode:
                 # paramName=p.text
                 parent=p.getparent()
                 paramDes=parent.xpath("string(.)") #获得参数说明
-                params_str.append(paramDes)
+                params_str.append(u"@参数 %s @: %s####"%(param_index,paramDes))
+                param_index=param_index+1
             retVal_str=[]
             if isRemoteAPi:
                 retValsNode=apiTable.xpath(".//td[@class='remApiTableRightCRet']/div/strong")
             else:
                 retValsNode=apiTable.xpath(".//td[@class='apiTableRightCRet']/div")
-                
+            
+            
             for ret in retValsNode:
                 # retName=ret.text
                 parent=ret.getparent()
                 retDes=parent.xpath("string(.)") #获得返回值说明
-                retVal_str.append(retDes)
-            ApiDict[simToSimDot(apiName)]=[description,"\n".join(params_str),"\n".join(retVal_str)]
+                retVal_str.append(u"@返回值@: %s####"%retDes)
+                
+            ApiDict[simToSimDot(apiName)]=[u"<函数描述>:????%s$$$$"%description + u"<参数及返回值>:????%s$$$$"%((" ").join(params_str+retVal_str))]
     return ApiDict
 
 
@@ -129,10 +133,11 @@ for node in keyNodes:
         # paramNamesFlatten=tuple(itertools.chain.from_iterable(enumerate(paramNames)))
         paramsBody = ("${%s:%s}" % (x, y) for x, y in enumerate(paramNames))
         body = "%s(%s)" % (funcName, ",".join(paramsBody))  # 函数体
-        description = "%s %s(%s)" % (retVal, funcName, ",".join(params))
+        description = "%s %s(%s)$$$$" % (retVal, funcName, ",".join(params))
         if apiDict.has_key(funcName):
             description="%s\n%s"%(description," ".join(apiDict[funcName]))
-        description=description.strip().replace("\"","").replace("\n","").replace(" "," ")
+        #替换所有的" |\n |连续空格
+        description=description.strip().replace("\"","").replace("\n","").replace("  "," ").replace("####","\\n%s\\n"%("*"*30)).replace("$$$$","\\n\\n%s\\n\\n"%("#"*30)).replace("????","\\n")
     snippet = '''{
         "body": "%s",
         "description": "%s",
