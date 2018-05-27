@@ -5,6 +5,8 @@ function sysCall_init()
     J = matrix(6, 6)
     camHandle = sim.getObjectHandle("camera")
 
+    targetHandle = sim.getObjectHandle("target")
+    tiptHandle = sim.getObjectHandle("tip")
     jointHandles = {-1, -1, -1, -1, -1, -1}
     for i = 1, 6, 1 do
         jointHandles[i] = sim.getObjectHandle("UR5_joint" .. i)
@@ -20,13 +22,13 @@ function sysCall_init()
     FXY = (IMAGE_SIZE / 2) * math.tan(math.rad(90 - AGNLE / 2)) --焦距的像素距离
 
     --期望的像素点的坐标(距离相机0.1)
-    local target_locs = {{0.05, 0.05, 0.1}, {-0.05, 0.05, 0.1}, {-0.05, -0.05, 0.1}}
+    local target_locs = {{0.05, -0.05, 0.1}, {-0.05, -0.05, 0.1}, {-0.05, 0.05, 0.1}}
     target_pixels = {}
     for i = 1, 3, 1 do
         target_pixels[i] = getFeaturePixelPosition(target_locs[i])
     end
     lambda = 0.01
-    step = 0.05
+    step = 0.01
 end
 
 --计算特征点的当前的像素位置
@@ -42,8 +44,9 @@ end
 --@current_pos:目标特征点在相机坐标系下的当前坐标(x,y,z)
 --@target_pixel:目标特征点在像素坐标下的期望坐标(u,v)
 function calculateSinglePixelError(current_pos, target_pixel)
-    current_pixel = getFeaturePixelPosition(current_pos)
-    return {current_pixel[1] - target_pixel[1], current_pixel[2] - target_pixel[2]}
+    local current_pixel = getFeaturePixelPosition(current_pos)
+    local pixel_dis = {current_pixel[1] - target_pixel[1], current_pixel[2] - target_pixel[2]}
+    return pixel_dis
 end
 
 --
@@ -71,13 +74,16 @@ function getInteractionMatrix()
 end
 
 function sysCall_actuation()
-    local res = sim.computeJacobian(ik_pinv, 0)
+    sim.setObjectMatrix(targetHandle, -1, sim.getObjectMatrix(tiptHandle, -1))
+    local res = sim.computeJacobian(ik_pinv, 1)
     local mat, s = {}, {}
     if res ~= -1 then
         --s=(column,rows) #mat=column*rows
+        print("@@@@@:PINV")
         mat, s = sim.getIkGroupMatrix(ik_pinv, 0)
     else
-        res = sim.computeJacobian(ik_dls, 0)
+        print("@@@@@:DLS")
+        res = sim.computeJacobian(ik_dls, 1)
         mat, s = sim.getIkGroupMatrix(ik_dls, 0)
     end
 
@@ -90,11 +96,23 @@ function sysCall_actuation()
     local Lx = getInteractionMatrix()
     local J_p = J ^ -1 --机械臂雅克比矩阵逆
     local Lx_p = Lx ^ -1 --图像雅克比逆
-    local V = -lambda * J_p * Lx_p * E
-    local D = V * step
-    print(E)
-    -- for i = 1, 6, 1 do        
-    --     sim.setJointPosition(jointHandles[i], sim.getJointPosition(jointHandles[i]) + D[i][1])
+    local Vcam = -lambda * Lx_p * E
+    local Vrobot = J_p * Vcam * step
+    print("****************")
+    print("Error:",E)
+    print("Vcamera:", Vcam)
+    print("Vrobot :",Vrobot)
+    -- print("****************")
+    -- for i = 1, 6, 1 do
+    --     --最大速度pi/4 /s
+    --     if Vrobot[i][1] >= 0.00785 then
+    --         Vrobot[i][1] = 0.00785
+    --     end
+    --     if Vrobot[i][1] <= -0.00785 then
+    --         Vrobot[i][1] = -0.00785
+    --     end
+    --     print("Vrobot :", Vrobot[i][1])
+    --     sim.setJointPosition(jointHandles[i], sim.getJointPosition(jointHandles[i]) + Vrobot[i][1])
     -- end
 end
 
