@@ -86,29 +86,30 @@ function enableAutoIK(isenable)
 end
 
 
-pickAction=function(relVel)
+--抓取
+pickAction=function(pickPos,pickOrientation,relVel)
 
     openGripper(true)   --打开爪子
-    enableAutoIK(false) --关闭自动IK
+    -- enableAutoIK(false) --关闭自动IK
 
-    --移动到抓取位置
-    sim.moveToJointPositions(joints,upperPickupJointPos,jointVelocity*relVel,jointAcceleration*relVel)
-
-    --移动target到tip
-    sim.setObjectMatrix(target,-1,sim.getObjectMatrix(tip,-1))
+    -- --移动到抓取位置(关节控制)
+    -- sim.moveToJointPositions(joints,upperPickupJointPos,jointVelocity*relVel,jointAcceleration*relVel)
+    -- --移动target到tip
+    -- sim.setObjectMatrix(target,-1,sim.getObjectMatrix(tip,-1))
 
     enableAutoIK(true) --开启自动IK
 
     --IK解算:抓取预处理
-    sim.moveToPosition(target,RDS_01,pickupPos,pickupOrientation,movementVelocity*relVel,movementAcceleration*relVel)
+    sim.moveToPosition(target,RDS_01,pickPos,pickOrientation,movementVelocity*relVel,movementAcceleration*relVel)
     openGripper(false) --合并爪子
 
     sim.wait(1.0)
     
-    --IK解算:抓取后处理
-    sim.moveToPosition(target,RDS_01,{pickupPos[1],pickupPos[2],pickupPos[3]+0.1},pickupOrientation,movementVelocity*relVel,movementAcceleration*relVel)
+    -- --IK解算:抓取后处理
+    sim.moveToPosition(target,RDS_01,{pickPos[1],pickPos[2],pickPos[3]+0.1},pickOrientation,movementVelocity*relVel,movementAcceleration*relVel)
 end
 
+--移动到临时放置的位置
 moveToIntermediateDropPos=function(relVel)
     enableAutoIK(false)
     --移动到放置的位置
@@ -129,8 +130,8 @@ placeAction=function(dropPos,dropOrientation,relVel)
     sim.moveToPosition(target,RDS_01,{dropPos[1],dropPos[2],dropPos[3]+0.2},dropOrientation,movementVelocity*relVel,movementAcceleration*relVel)
 end
 
-pickAndPlace=function(dropPos,dropOrientation,useIntermediateDropPos,relVel)
-    pickAction(relVel)
+pickAndPlace=function(pickPos,pickOrientation,dropPos,dropOrientation,useIntermediateDropPos,relVel)
+    pickAction(pickPos,pickOrientation,relVel)
     if (useIntermediateDropPos) then
         sim.switchThread() -- Make sure sim.handleIkGroup was already called in this pass
         moveToIntermediateDropPos(relVel)
@@ -151,16 +152,20 @@ function sysCall_threadmain()
     ikPINV=sim.getIkGroupHandle('RDS_IK_PINV')
     ikDLS=sim.getIkGroupHandle('RDS_IK_DLS')
 
-    pickupPos={-1,-1,-1}
-    pickupOrientation={math.pi,0,0}
-    upperPickupJointPos={0,0,0,0,0,-1.5708,0}
-    intermediateDropPos={0,0,0,0,0,-1.5708,0}
+    local pickPos={-0.5,-0.5,0.08}  --抓取的位置(不要超过工作空间)    
+    local pickOrientation={math.pi,0,0} --抓取的姿态
+    upperPickupJointPos={0,0,0,0,0,-1.5708,0} 
+    intermediateDropPos={0,0,0,0,0,-1.5708,0} --临时放置位置
     movementVelocity=0.6 --末端速度
     movementAcceleration=2 --末端加速度
     jointVelocity=math.pi*0.6 --关节速度
     jointAcceleration=10 --关节加速度
 
-    pickAndPlace({0.6,0,0.2},{math.pi,0,0},false,1)
+    local placePos={0.6,0,0.2}
+    local placeOrientation={math.pi,0,0}
+    pickAndPlace(pickPos,pickOrientation,placePos,placeOrientation,false,1)
+    -- print("cpath:"..package.cpath)
+    -- print("path:"..package.cpath)
 
 end
 
