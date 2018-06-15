@@ -209,14 +209,12 @@ end
 
 function sysCall_actuation()
     sim.setObjectMatrix(targetHandle, -1, sim.getObjectMatrix(tiptHandle, -1))
-    local res = sim.computeJacobian(ik_pinv, 1)
+    local res = sim.computeJacobian(ik_pinv, 0)
     local mat, s = {}, {}
     if res ~= -1 then
         --s=(column,rows) #mat=column*rows
-        print("@@@@@:PINV")
         mat, s = sim.getIkGroupMatrix(ik_pinv, 0)
     else
-        print("@@@@@:DLS")
         res = sim.computeJacobian(ik_dls, 1)
         mat, s = sim.getIkGroupMatrix(ik_dls, 0)
     end
@@ -226,34 +224,46 @@ function sysCall_actuation()
             fJe[i][j] = mat[i + (j - 1) * 6]
         end
     end
+    
+
+
+    if Fisrt==nil then
+        local pos=matrix(6,1)
+        for i=1,6,1 do
+            pos[i]={sim.getJointPosition(jointHandles[i])}
+        end
+        Fisrt=1
+        local pos_=fJe*pos
+        print(matrix.tostring(pos_))
+    end
     --公式
     -- J1 = L * cVa * aJe
     -- e1 = J1p * error; 
     -- v = -lambda(e1) * e1 + (e_dot_init + lambda(e1) * e1_initial) * exp(-mu * t);
-    local Err = calculatePixelsError() --误差
-    local L = getInteractionMatrix() --图像雅克比
-    local cMf=sim.getObjectMatrix(UR5Handle,camHandle)
-    local cVf=hom2vec(cMf)
-    local J1=L*cVf*fJe   --任务雅克比矩阵
-    local J1_p = J1 ^ -1 --任务雅克比矩阵的逆
-    local Vrobot = -lambda*J1_p*Err*0.05
+    -- local Err = calculatePixelsError() --误差
+    -- local L = getInteractionMatrix() --图像雅克比
+    -- local cMf=sim.getObjectMatrix(UR5Handle,camHandle)
+    -- local cVf=hom2vec(cMf)
+    -- local J1=L*cVf*fJe   --任务雅克比矩阵
+    -- local J1_p = J1 ^ -1 --任务雅克比矩阵的逆
+    -- local Vrobot = -lambda*J1_p*Err*0.05
     
-    print("****************")
-    -- print("Error:",E)
-    -- print("Vcamera:", Vcam)
-    -- print("Vrobot :",Vrobot)
-    -- local theata=matrix(6,1)
-    local Vrobot=saturateVelocities(Vrobot,V_Max,true) --限速
-    ----
-    -- local pos=sim.getObjectPosition(camHandle,-1)
-    -- for i=1,3,1 do
-    --     pos[i]=pos[i]+Vrobot[i][1]
+    -- print("****************")
+    -- -- print("Error:",E)
+    -- -- print("Vcamera:", Vcam)
+    -- -- print("Vrobot :",Vrobot)
+    -- -- local theata=matrix(6,1)
+    -- local Vrobot=saturateVelocities(Vrobot,V_Max,true) --限速
+    -- ----
+    -- -- local pos=sim.getObjectPosition(camHandle,-1)
+    -- -- for i=1,3,1 do
+    -- --     pos[i]=pos[i]+Vrobot[i][1]
+    -- -- end
+    -- -- sim.setObjectPosition(camHandle,-1,pos)
+    -- for i = 1, 6, 1 do
+    --     -- print(Vrobot[i][1])
+    --     sim.setJointPosition(jointHandles[i], sim.getJointPosition(jointHandles[i]) + Vrobot[i][1])
     -- end
-    -- sim.setObjectPosition(camHandle,-1,pos)
-    for i = 1, 6, 1 do
-        -- print(Vrobot[i][1])
-        sim.setJointPosition(jointHandles[i], sim.getJointPosition(jointHandles[i]) + Vrobot[i][1])
-    end
 end
 
 function sysCall_sensing()

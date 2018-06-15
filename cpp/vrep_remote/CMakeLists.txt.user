@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.5.0, 2018-05-29T14:25:28. -->
+<!-- Written by QtCreator 4.5.2, 2018-06-15T17:59:12. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
-  <value type="QByteArray">{d57d887d-1c12-4d69-9aaf-f902ae2d8504}</value>
+  <value type="QByteArray">{230d7e94-64bc-4766-9ab1-da673cf205a5}</value>
  </data>
  <data>
   <variable>ProjectExplorer.Project.ActiveTarget</variable>
@@ -59,15 +59,15 @@
  <data>
   <variable>ProjectExplorer.Project.Target.0</variable>
   <valuemap type="QVariantMap">
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Desktop Qt 5.9.4 GCC 64bit</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Desktop Qt 5.9.4 GCC 64bit</value>
-   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">qt.594.gcc_64_kit</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Desktop Qt 5.9.5 GCC 64bit</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">Desktop Qt 5.9.5 GCC 64bit</value>
+   <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">qt.595.gcc_64_kit</value>
    <value type="int" key="ProjectExplorer.Target.ActiveBuildConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveDeployConfiguration">0</value>
    <value type="int" key="ProjectExplorer.Target.ActiveRunConfiguration">1</value>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.0">
     <valuelist type="QVariantList" key="CMake.Configuration"/>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/vrep_remote/build</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Default</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments"></value>
@@ -111,7 +111,7 @@
     <valuelist type="QVariantList" key="CMake.Configuration">
      <value type="QString">CMAKE_BUILD_TYPE:STRING=Debug</value>
     </valuelist>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Debug</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments"></value>
@@ -155,7 +155,7 @@
     <valuelist type="QVariantList" key="CMake.Configuration">
      <value type="QString">CMAKE_BUILD_TYPE:STRING=Release</value>
     </valuelist>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Release</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments"></value>
@@ -199,7 +199,7 @@
     <valuelist type="QVariantList" key="CMake.Configuration">
      <value type="QString">CMAKE_BUILD_TYPE:STRING=RelWithDebInfo</value>
     </valuelist>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Release with Debug Information</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments"></value>
@@ -243,7 +243,7 @@
     <valuelist type="QVariantList" key="CMake.Configuration">
      <value type="QString">CMAKE_BUILD_TYPE:STRING=MinSizeRel</value>
     </valuelist>
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Minimum Size Release</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="QString" key="CMakeProjectManager.MakeStep.AdditionalArguments"></value>
@@ -341,7 +341,7 @@
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguation.Title">vrepIbvsAruco_2</value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.Arguments"></value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory"></value>
-    <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory.default">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/vrep_remote/build</value>
+    <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory.default">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Default</value>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">vrepIbvsAruco_2</value>
@@ -397,7 +397,7 @@
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguation.Title">vrepIbvsAruco_1</value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.Arguments"></value>
     <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory"></value>
-    <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory.default">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/vrep_remote/build</value>
+    <value type="QString" key="CMakeProjectManager.CMakeRunConfiguration.UserWorkingDirectory.default">/media/zen/workspace/GitWorkSpace/lpc-robot/cpp/build-vrep_remote-Desktop_Qt_5_9_5_GCC_64bit-Default</value>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">vrepIbvsAruco_1</value>

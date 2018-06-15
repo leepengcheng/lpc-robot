@@ -1,16 +1,6 @@
 [[
     IK算法测试
 ]]
--- function include(absolutePathAndFile)
---     if not __notFirst__ then
---         __notFirst__=true
---         __scriptCodeToRun__=assert(loadfile(absolutePathAndFile))
---     end
---     if __scriptCodeToRun__ then
---         __scriptCodeToRun__()
---     end
--- end
--- include('/media/zen/workspace/GitWorkSpace/vrep-control/lua/simple_ik.lua')
 if (sim_call_type==sim_childscriptcall_initialization) then
     ui=simGetUIHandle('UI')
     J1_handle = simGetObjectHandle('j1')

@@ -15,7 +15,14 @@ extern "C" {
 
 
 #define DISP_IMAGE  0  //是否显示图片
-
+const char* VREP_CAMERA="camera";//visp_rgb相机的名称
+const char* VREP_OBJECT="aruco_box";//visp_box追踪的物体名称
+const char* VREP_COMMANDER_SERVER="remoteApiCommandServer";//远程服务调用脚本
+const char* TIP_NAME="tip"; //tip
+const float MIN_THREHOLD=0.0001; //收敛的最小阈值
+int clientID=-1; //连接ID
+vpRotationMatrix target_rot;
+vpTranslationVector target_xyz;
 
 //计算图像的位姿
 bool getMarkerPoseImage(cv::InputArray img,const cv::Ptr<cv::aruco::Dictionary> &dict,cv::InputArray camMat,
@@ -46,14 +53,36 @@ vpHomogeneousMatrix getStepDelta(const vpColVector &v, const float &timeStep)
     return Delta;
 }
 
-vpMatrix getRobotJacobianMatrix(int &clientID)
+//远程调用:设置机器人的速度
+void setRobotjointSpeed(vpColVector& v)
+{
+
+
+    simxInt inFloatCnt=6;
+    simxFloat inFloats[6];
+    for(int i=0;i<6;++i)
+    {
+        inFloats[i]=static_cast<float>(v[i]);
+    }
+    simxCallScriptFunction(clientID,VREP_COMMANDER_SERVER,sim_scripttype_childscript,"setRobotJointPosition",0,NULL,inFloatCnt,inFloats,0,NULL,0,NULL,NULL,NULL,
+                           NULL,NULL,NULL,NULL,NULL,NULL,simx_opmode_oneshot_wait);
+}
+
+
+//远程调用:获取机器人的雅克比矩阵
+vpMatrix getRobotJacobianMatrix()
 {
     simxInt retFloatCnt;
     simxFloat* retFloats;
-    int result=simxCallScriptFunction(clientID,"remoteApiCommandServer",sim_scripttype_childscript,"getJacobianfunction",0,NULL,0,NULL,0,NULL,0,NULL,NULL,NULL,
+    int result=simxCallScriptFunction(clientID,VREP_COMMANDER_SERVER,sim_scripttype_childscript,"getJacobianfunction",0,NULL,0,NULL,0,NULL,0,NULL,NULL,NULL,
                                       &retFloatCnt,&retFloats,NULL,NULL,NULL,NULL,simx_opmode_blocking);
     vpMatrix mat(6,6);
+
     if (result==simx_return_ok){
+        //for(unsigned int j=0;j<retFloatCnt;++j)
+        //{
+        //    std::cout<<retFloats[j]<<std::endl;
+        //}
         for(unsigned int i=0;i<6;++i)
         {
             for (unsigned int j=0; j<6;++j)
@@ -65,10 +94,44 @@ vpMatrix getRobotJacobianMatrix(int &clientID)
     return mat;
 }
 
+//获取当前末端和期望末端的差值
+vpColVector getTipDistance(int tipHandle)
+{
+    vpColVector dis(6);
+    float tipPos[3],tipEuler[3];
+    simxGetObjectPosition(clientID,tipHandle,-1,tipPos,simx_opmode_oneshot_wait);
+    simxGetObjectOrientation(clientID,tipHandle,-1,tipEuler ,simx_opmode_oneshot_wait);
+    vpRxyzVector tipRxyz(tipEuler[0],tipEuler[1],tipEuler[2]);
+    vpRotationMatrix f_M_tip(tipRxyz);
+    vpTranslationVector t(tipPos[0],tipPos[1],tipPos[2]);
+
+
+    vpRotationMatrix dis_rot=target_rot*f_M_tip.inverse();
+    vpTranslationVector dis_xyz=target_xyz-t;
+    vpThetaUVector wxyz(dis_rot);
+
+    dis[0]=dis_xyz[0];
+    dis[1]=dis_xyz[1];
+    dis[2]=dis_xyz[2];
+    dis[3]=wxyz[0];
+    dis[4]=wxyz[1];
+    dis[5]=wxyz[2];
+    return dis;
+
+}
+
+void init()
+{
+    target_rot.eye();
+    //    target_xyz.buildFrom(0.0,0.5,0.2);
+    target_xyz.buildFrom(1.81651,0.18636,0.0087097);
+}
+
 int main()
 {
+    init();
     simxFinish(-1); //关闭所有连接
-    int clientID = simxStart((simxChar*)"127.0.0.1",19997,true,true,2000,5); //打开连接
+    clientID = simxStart((simxChar*)"127.0.0.1",19997,true,true,2000,5); //打开连接
     if (clientID==-1)
     {
         printf("Can not Connected to remote API server\n");
@@ -77,11 +140,26 @@ int main()
     printf("Successfully Connected to remote API server\n");
     //获得相机句柄
     int camHandle=0;
-    simxGetObjectHandle(clientID,"visp_rgb",&camHandle,simx_opmode_oneshot_wait);
+    simxGetObjectHandle(clientID,VREP_CAMERA,&camHandle,simx_opmode_oneshot_wait);
+
+    //获得tip句柄
+    int tipHandle=0;
+    simxGetObjectHandle(clientID,TIP_NAME,&tipHandle,simx_opmode_oneshot_wait);
 
     //获得物体的句柄
     int boxHandle=0;
-    simxGetObjectHandle(clientID,"visp_box",&boxHandle,simx_opmode_oneshot_wait);
+    simxGetObjectHandle(clientID,VREP_OBJECT,&boxHandle,simx_opmode_oneshot_wait);
+
+
+    //获取关节的句柄
+    char buffer[64];
+    int jointHandles[6];
+    for(int i=0;i<6;++i)
+    {
+        sprintf(buffer,"UR5_joint%d",i+1);
+
+        simxGetObjectHandle(clientID,buffer,&jointHandles[i],simx_opmode_oneshot_wait);
+    }
 
     //获得深度相机的近景和远景距离
     float nearClip=0;
@@ -110,7 +188,9 @@ int main()
     float camEuler[3];
     simxGetObjectOrientation(clientID,camHandle,-1,camEuler,simx_opmode_oneshot_wait);
 
-    //vpMatrix m=getRobotJacobianMatrix(clientID);
+
+
+    //vpMatrix m=getRobotJacobianMatrix();
 
     //#####################初始化伺服任务########################
     vpServo task;
@@ -120,7 +200,7 @@ int main()
 
 
     vpHomogeneousMatrix cdMo(0, 0, 0.5, vpMath::rad(180),0, 0);//终止时对象在相机中的位姿
-    vpHomogeneousMatrix cMo(0, 0, 0.2, 0, vpMath::rad(180), 0);//初始时对象在相机坐标系中的位姿
+    vpHomogeneousMatrix cMo(0, 0, 0.2, 0, vpMath::rad(180), 0);//初始时对象在相机坐标系中的位姿(初始化),下面重新赋值
 
     //虚拟特征点
     vector<vpPoint> points;
@@ -176,13 +256,24 @@ int main()
     {
 
 #ifdef FAKE
+        //获得box在相机坐标系下的位姿,并转换为vpMatrix
         float boxPos[3],boxEuler[3];
         simxGetObjectPosition(clientID,boxHandle,camHandle,boxPos,simx_opmode_oneshot_wait);
         simxGetObjectOrientation(clientID,boxHandle,camHandle,boxEuler ,simx_opmode_oneshot_wait);
-
         vpRxyzVector boxRxyz(boxEuler[0],boxEuler[1],boxEuler[2]);
         vpThetaUVector boxRvecs(boxRxyz);//转换为旋转向量
         cMo.buildFrom(boxPos[0],boxPos[1],boxPos[2],boxRvecs[0],boxRvecs[1],boxRvecs[2]);
+
+        //获得tip在世界坐标系下的位姿,并转换为vpMatrix
+        float tipPos[3],tipEuler[3];
+        simxGetObjectPosition(clientID,tipHandle,-1,tipPos,simx_opmode_oneshot_wait);
+        simxGetObjectOrientation(clientID,tipHandle,-1,tipEuler ,simx_opmode_oneshot_wait);
+        vpRxyzVector tipRxyz(tipEuler[0],tipEuler[1],tipEuler[2]);
+        vpRotationMatrix f_M_e(tipRxyz);
+        //        vpVelocityTwistMatrix f_V_e(f_M_e);
+
+
+
 #else
         if(simxGetVisionSensorImage(clientID, camHandle,resolution,&vimage,0, simx_opmode_buffer)==simx_return_ok)
         {
@@ -219,27 +310,63 @@ int main()
             }
         }
 #endif
-        //更新特征点
-        for (unsigned int i = 0; i < 4; i++) {
-            points[i].track(cMo);
-            vpFeatureBuilder::create(p[i], points[i]);
+        try{
+            //更新特征点
+//            for (unsigned int i = 0; i < 4; i++) {
+//                points[i].track(cMo);
+//                vpFeatureBuilder::create(p[i], points[i]);
+//            }
+//            vpColVector v = task.computeControlLaw();
+//            wMc=wMc*getStepDelta(v,timeStep);//更新wMc
+//            T=wMc.getTranslationVector();//平移部分
+//            R.buildFrom(wMc.getThetaUVector());//旋转部分
+//            for(size_t i=0;i<3;++i)
+//            {
+//                camPos[i]=static_cast<float>(T[i]);
+//                camEuler[i]=static_cast<float>(R[i]);
+//            }
+
+
+//            std::vector<float> pos;
+//            float val=0;
+//            for(int i=0;i<6;++i)
+//            {
+//                simxGetJointPosition(clientID,jointHandles[i],&val,simx_opmode_oneshot_wait);
+//                pos.push_back(val);
+//                //                std::cout<<val/3.14159*180<<std::endl;
+//            }
+//            vpColVector pos_(pos);
+
+            //f_J_e=f_V_e*e_J_e
+            //e_J_e=f_V_e_p*f_J_e
+            //e_J_e_p=f_J_e_p*f_V_e
+            //theta=e_j_e_p*v=f_J_e_p*f_V_e*v
+            vpMatrix fJe=getRobotJacobianMatrix();//获取机械臂的雅克比矩阵
+            vpColVector dis_tip=getTipDistance(tipHandle);
+            if(dis_tip.sumSquare()<0.1)
+            {
+                std::cout<<"Error:"<<dis_tip.sumSquare()<<std::endl;
+                continue;
+            }
+            vpColVector theta=fJe*dis_tip;
+            //            std::cout<<fJe*pos_<<std::endl;
+            //            vpMatrix fJe_p=fJe.pseudoInverse();
+            //            vpColVector theta=fJe_p*f_V_e*v*0.05;
+            setRobotjointSpeed(theta);
+
         }
-        task.set_fJe(getRobotJacobianMatrix(clientID));//设置雅克比矩阵
-        vpColVector v = task.computeControlLaw();
-        std::cout<<v<<std::endl;
-        wMc=wMc*getStepDelta(v,timeStep);//更新wMc
-        T=wMc.getTranslationVector();//平移部分
-        R.buildFrom(wMc.getThetaUVector());//旋转部分
-        for(size_t i=0;i<3;++i)
+        catch(exception &e)
         {
-            camPos[i]=static_cast<float>(T[i]);
-            camEuler[i]=static_cast<float>(R[i]);
+            std::cout<<e.what()<<std::endl;
         }
-        simxSetObjectPosition(clientID,camHandle,-1,camPos,simx_opmode_oneshot);
-        simxSetObjectOrientation(clientID,camHandle,-1,camEuler,simx_opmode_oneshot);
-        //if ((task.getError()).sumSquare() < 0.001)
-        //break;
-//        extApi_sleepMs(1);//暂停10ms
+        //        simxSetObjectPosition(clientID,camHandle,-1,camPos,simx_opmode_oneshot);
+        //        simxSetObjectOrientation(clientID,camHandle,-1,camEuler,simx_opmode_oneshot);
+//        if ((task.getError()).sumSquare() < MIN_THREHOLD)
+//        {
+//            std::cout<<"Task Finished"<<std::endl;
+//            continue;
+//        }
+        extApi_sleepMs(100);//暂停10ms
     }
 #ifndef FAKE
     cv::destroyAllWindows();
