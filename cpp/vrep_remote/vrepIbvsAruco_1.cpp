@@ -15,12 +15,19 @@ extern "C" {
 
 
 #define DISP_IMAGE  0  //是否显示图片
+const char* BASE_NAME="UR5";//参考坐标系
 const char* VREP_CAMERA="camera";//visp_rgb相机的名称
 const char* VREP_OBJECT="aruco_box";//visp_box追踪的物体名称
 const char* VREP_COMMANDER_SERVER="remoteApiCommandServer";//远程服务调用脚本
 const char* TIP_NAME="tip"; //tip
+const char* TARGET_NAME="target";//target
 const float MIN_THREHOLD=0.0001; //收敛的最小阈值
 int clientID=-1; //连接ID
+int baseHandle=-1;//基座句柄
+int camHandle=-1;//相机句柄
+int tipHandle=-1;//末端的句柄
+int targetHandle=-1;//目标的句柄
+
 vpRotationMatrix target_rot;
 vpTranslationVector target_xyz;
 
@@ -95,41 +102,66 @@ vpMatrix getRobotJacobianMatrix()
 }
 
 //获取当前末端和期望末端的差值
-vpColVector getTipDistance(int tipHandle)
+vpColVector getTipTargetDistance()
 {
-    vpColVector dis(6);
+
     float tipPos[3],tipEuler[3];
-    simxGetObjectPosition(clientID,tipHandle,-1,tipPos,simx_opmode_oneshot_wait);
-    simxGetObjectOrientation(clientID,tipHandle,-1,tipEuler ,simx_opmode_oneshot_wait);
+    simxGetObjectPosition(clientID,tipHandle,baseHandle,tipPos,simx_opmode_oneshot_wait);
+    simxGetObjectOrientation(clientID,tipHandle,baseHandle,tipEuler ,simx_opmode_oneshot_wait);
     vpRxyzVector tipRxyz(tipEuler[0],tipEuler[1],tipEuler[2]);
-    vpRotationMatrix f_M_tip(tipRxyz);
-    vpTranslationVector t(tipPos[0],tipPos[1],tipPos[2]);
+    vpRotationMatrix f_M_tip(tipRxyz);//末端姿态:旋转向量
+    vpTranslationVector t(tipPos[0],tipPos[1],tipPos[2]);//末端位置
+
+    //dis_rot*f_M_tip=target_rot >>dis_rot=target_rot*f_M_tip.inverse()
+    vpRotationMatrix dis_rot=target_rot*f_M_tip.inverse();//旋转差值:旋转矩阵
+
+    //    dis_rot[0][0]=dis_rot[0][0]-1;
+    //    dis_rot[1][1]=dis_rot[1][1]-1;
+    //    dis_rot[2][2]=dis_rot[2][2]-1;
+
+    //    std::cout<<"*****"<<"f_M_tip"<<"*****"<<std::endl;
+    //    std::cout<<f_M_tip<<std::endl;
+
+    //    std::cout<<"*****"<<"target_rot"<<"*****"<<std::endl;
+    //    std::cout<<target_xyz.t()<<std::endl;
 
 
-    vpRotationMatrix dis_rot=target_rot*f_M_tip.inverse();
-    vpTranslationVector dis_xyz=target_xyz-t;
-    vpThetaUVector wxyz(dis_rot);
 
+    vpTranslationVector dis_xyz=target_xyz-t;//位移差值
+
+    vpThetaUVector wxyz(dis_rot);//旋转差值:旋转向量
+    //    wxyz[0]=dis_rot[2][1]-dis_rot[1][2];
+    //    wxyz[1]=dis_rot[0][2]-dis_rot[2][0];
+    //    wxyz[2]=dis_rot[1][0]-dis_rot[0][1];
+    //    wxyz=wxyz*0.5;
+
+    vpColVector dis(6);
     dis[0]=dis_xyz[0];
     dis[1]=dis_xyz[1];
     dis[2]=dis_xyz[2];
-    dis[3]=wxyz[0];
-    dis[4]=wxyz[1];
-    dis[5]=wxyz[2];
+    //    dis[3]=wxyz[0];
+    //    dis[4]=wxyz[1];
+    //    dis[5]=wxyz[2];
     return dis;
 
 }
 
-void init()
+//更新目标的位置和姿态
+void updateTargetMatrix()
 {
-    target_rot.eye();
-    //    target_xyz.buildFrom(0.0,0.5,0.2);
-    target_xyz.buildFrom(1.81651,0.18636,0.0087097);
+    float tarPos[3],tarEuler[3];
+    simxGetObjectPosition(clientID,targetHandle,baseHandle,tarPos,simx_opmode_oneshot_wait);
+    simxGetObjectOrientation(clientID,targetHandle,baseHandle,tarEuler ,simx_opmode_oneshot_wait);
+    vpRxyzVector TarRxyz(tarEuler[0],tarEuler[1],tarEuler[2]);
+    target_rot.buildFrom(TarRxyz);
+    target_xyz.buildFrom(tarPos[0],tarPos[1],tarPos[2]);
 }
+
+
 
 int main()
 {
-    init();
+
     simxFinish(-1); //关闭所有连接
     clientID = simxStart((simxChar*)"127.0.0.1",19997,true,true,2000,5); //打开连接
     if (clientID==-1)
@@ -138,18 +170,23 @@ int main()
         return 1;
     }
     printf("Successfully Connected to remote API server\n");
+
+
+    simxGetObjectHandle(clientID,BASE_NAME,&baseHandle,simx_opmode_oneshot_wait);
     //获得相机句柄
-    int camHandle=0;
     simxGetObjectHandle(clientID,VREP_CAMERA,&camHandle,simx_opmode_oneshot_wait);
 
     //获得tip句柄
-    int tipHandle=0;
     simxGetObjectHandle(clientID,TIP_NAME,&tipHandle,simx_opmode_oneshot_wait);
+
+    //获得target句柄
+    simxGetObjectHandle(clientID,TARGET_NAME,&targetHandle,simx_opmode_oneshot_wait);
 
     //获得物体的句柄
     int boxHandle=0;
     simxGetObjectHandle(clientID,VREP_OBJECT,&boxHandle,simx_opmode_oneshot_wait);
 
+    std::cout<<baseHandle<<" "<<tipHandle<<" "<<targetHandle<<" "<<targetHandle;
 
     //获取关节的句柄
     char buffer[64];
@@ -214,7 +251,6 @@ int main()
     task.setServo(vpServo::EYEINHAND_CAMERA);
     task.setInteractionMatrixType(vpServo::CURRENT);
     task.setLambda(1);
-
     //初始化特征点
     vpFeaturePoint p[4], pd[4];
     for (unsigned int i = 0; i < 4; i++) {
@@ -264,15 +300,17 @@ int main()
         vpThetaUVector boxRvecs(boxRxyz);//转换为旋转向量
         cMo.buildFrom(boxPos[0],boxPos[1],boxPos[2],boxRvecs[0],boxRvecs[1],boxRvecs[2]);
 
-        //获得tip在世界坐标系下的位姿,并转换为vpMatrix
+        //获得tip在baseHandle坐标系下的位姿,并转换为vpMatrix
         float tipPos[3],tipEuler[3];
-        simxGetObjectPosition(clientID,tipHandle,-1,tipPos,simx_opmode_oneshot_wait);
-        simxGetObjectOrientation(clientID,tipHandle,-1,tipEuler ,simx_opmode_oneshot_wait);
+        simxGetObjectPosition(clientID,tipHandle,baseHandle,tipPos,simx_opmode_oneshot_wait);
+        simxGetObjectOrientation(clientID,tipHandle,baseHandle,tipEuler ,simx_opmode_oneshot_wait);
         vpRxyzVector tipRxyz(tipEuler[0],tipEuler[1],tipEuler[2]);
-        vpRotationMatrix f_M_e(tipRxyz);
+        vpRotationMatrix f_M_e(tipRxyz);//末端的姿态:旋转矩阵
         //        vpVelocityTwistMatrix f_V_e(f_M_e);
 
 
+        //更新目标的位置和姿态
+        updateTargetMatrix();
 
 #else
         if(simxGetVisionSensorImage(clientID, camHandle,resolution,&vimage,0, simx_opmode_buffer)==simx_return_ok)
@@ -312,46 +350,58 @@ int main()
 #endif
         try{
             //更新特征点
-//            for (unsigned int i = 0; i < 4; i++) {
-//                points[i].track(cMo);
-//                vpFeatureBuilder::create(p[i], points[i]);
-//            }
-//            vpColVector v = task.computeControlLaw();
-//            wMc=wMc*getStepDelta(v,timeStep);//更新wMc
-//            T=wMc.getTranslationVector();//平移部分
-//            R.buildFrom(wMc.getThetaUVector());//旋转部分
-//            for(size_t i=0;i<3;++i)
-//            {
-//                camPos[i]=static_cast<float>(T[i]);
-//                camEuler[i]=static_cast<float>(R[i]);
-//            }
+            //            for (unsigned int i = 0; i < 4; i++) {
+            //                points[i].track(cMo);
+            //                vpFeatureBuilder::create(p[i], points[i]);
+            //            }
+            //            vpColVector v = task.computeControlLaw();
+            //            wMc=wMc*getStepDelta(v,timeStep);//更新wMc
+            //            T=wMc.getTranslationVector();//平移部分
+            //            R.buildFrom(wMc.getThetaUVector());//旋转部分
+            //            for(size_t i=0;i<3;++i)
+            //            {
+            //                camPos[i]=static_cast<float>(T[i]);
+            //                camEuler[i]=static_cast<float>(R[i]);
+            //            }
 
 
-//            std::vector<float> pos;
-//            float val=0;
-//            for(int i=0;i<6;++i)
-//            {
-//                simxGetJointPosition(clientID,jointHandles[i],&val,simx_opmode_oneshot_wait);
-//                pos.push_back(val);
-//                //                std::cout<<val/3.14159*180<<std::endl;
-//            }
-//            vpColVector pos_(pos);
+            //            std::vector<float> pos;
+            //            float val=0;
+            //            for(int i=0;i<6;++i)
+            //            {
+            //                simxGetJointPosition(clientID,jointHandles[i],&val,simx_opmode_oneshot_wait);
+            //                pos.push_back(val);
+            //                //                std::cout<<val/3.14159*180<<std::endl;
+            //            }
+            //            vpColVector pos_(pos);
 
             //f_J_e=f_V_e*e_J_e
             //e_J_e=f_V_e_p*f_J_e
             //e_J_e_p=f_J_e_p*f_V_e
             //theta=e_j_e_p*v=f_J_e_p*f_V_e*v
             vpMatrix fJe=getRobotJacobianMatrix();//获取机械臂的雅克比矩阵
-            vpColVector dis_tip=getTipDistance(tipHandle);
-            if(dis_tip.sumSquare()<0.1)
-            {
-                std::cout<<"Error:"<<dis_tip.sumSquare()<<std::endl;
-                continue;
-            }
-            vpColVector theta=fJe*dis_tip;
+            vpColVector dis_tip=getTipTargetDistance();
+
+            //            std::cout<<"Error:"<<dis_tip.t()<<std::endl;
+            //            if(dis_tip.sumSquare()<0.01)
+            //            {
+            //                std::cout<<"sumSquare:"<<dis_tip.sumSquare()<<std::endl;
+            //                continue;
+            //            }
+            vpMatrix imJ1t, imJ1,fJe_p;
+            vpColVector sv;
+            unsigned int rankJ1 = fJe.pseudoInverse(fJe_p, sv, 1e-6, imJ1, imJ1t);
+            vpColVector theta=fJe_p*dis_tip;
             //            std::cout<<fJe*pos_<<std::endl;
             //            vpMatrix fJe_p=fJe.pseudoInverse();
             //            vpColVector theta=fJe_p*f_V_e*v*0.05;
+
+
+            std::cout<<fJe<<std::endl;
+            std::cout<<"--------------------"<<std::endl;
+            std::cout<<fJe.pseudoInverse()<<std::endl;
+            std::cout<<"###################"<<std::endl;
+            std::cout<<theta.t()<<std::endl;
             setRobotjointSpeed(theta);
 
         }
@@ -361,12 +411,12 @@ int main()
         }
         //        simxSetObjectPosition(clientID,camHandle,-1,camPos,simx_opmode_oneshot);
         //        simxSetObjectOrientation(clientID,camHandle,-1,camEuler,simx_opmode_oneshot);
-//        if ((task.getError()).sumSquare() < MIN_THREHOLD)
-//        {
-//            std::cout<<"Task Finished"<<std::endl;
-//            continue;
-//        }
-        extApi_sleepMs(100);//暂停10ms
+        //        if ((task.getError()).sumSquare() < MIN_THREHOLD)
+        //        {
+        //            std::cout<<"Task Finished"<<std::endl;
+        //            continue;
+        //        }
+        //        extApi_sleepMs(100);//暂停10ms
     }
 #ifndef FAKE
     cv::destroyAllWindows();

@@ -39,7 +39,6 @@ set(demos vrepIbvsAruco_1.cpp vrepIbvsAruco_2.cpp)
 find_package(OpenCV 3 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(VISP REQUIRED visp_core  visp_vs visp_robot)
-include_directories(${VISP_INCLUDE_DIRS})
 
 
 include_directories(${VREP_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${VISP_INCLUDE_DIRS})
