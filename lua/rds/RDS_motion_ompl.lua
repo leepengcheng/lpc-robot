@@ -1,3 +1,6 @@
+package.path="D:/MyGit/lpc-robot/lua/rds/?.lua;"..package.path
+local common=require("common")
+common.helloworld()
 --可视化末端的轨迹
 --@path:计算出的路径点(关节空间/构型空间)
 visualizePath = function(path)

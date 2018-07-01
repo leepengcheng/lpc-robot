@@ -11,6 +11,7 @@
 
 -- This is a threaded script, and is just an example!
 
+sim.includeAbs('D:/MyGit/lpc-robot/lua/rds/common.lua')
 
 local pick={
         id="pick",

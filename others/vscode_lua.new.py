@@ -71,10 +71,21 @@ apiDict={}
 
 SYS=system()
 USER=getuser()
-# VREP_ROOT=r"C:\Program Files\V-REP3\V-REP_PRO_EDU"
-VREP_ROOT=os.getenv('VREP_ROOT')
+
+if SYS=="Linux":
+    VREP_ROOT=os.getenv('VREP_ROOT')
+    luaExtension="/home/%s/.vscode/extensions/keyring.lua-0.0.9/snippets/snippets.json"%USER
+else:
+    VREP_ROOT=os.getenv('VREP_ROOT') or "C:/Program Files/V-REP3/V-REP_PRO_EDU/"
+    luaExtension = "C:/Users/%s/.vscode/extensions/keyring.lua-0.0.9/snippets/snippets.json"%USER
+
 if not os.path.exists(VREP_ROOT):
     raise EnvironmentError("VREP_ROOT is not exist")
+
+if not os.path.exists(luaExtension):
+    raise EnvironmentError("luaExtension is not exist")
+
+
 
 remoteApiHelpfiles=os.path.join(VREP_ROOT,"helpfiles/en/remoteApiFunctionsLua.htm")
 if  os.path.exists(remoteApiHelpfiles):
@@ -82,12 +93,7 @@ if  os.path.exists(remoteApiHelpfiles):
 else:
     raise EnvironmentError("NO VREP HELP FILE")
 
-if SYS=="Linux":
-    luaExtension="/home/%s/.vscode/extensions/keyring.lua-0.0.9/snippets/snippets.json"%USER
-else:
-    luaExtension = "C:/Users/%s/.vscode/extensions/keyring.lua-0.0.9/snippets/snippets.json"%USER
-if not os.path.exists(luaExtension):
-    raise NameError("luaExtension is not exist")
+
 
 
 
