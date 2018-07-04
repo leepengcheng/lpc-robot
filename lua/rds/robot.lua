@@ -1,12 +1,9 @@
 local robot = {}
 robot.VERSION = 1.0
---机械爪
-robot.gripper = nil
---配置参数
-robot.param = nil
+
 
 function robot.new(self, param)
-    return setmetatable(param, {__index = robot})
+    return setmetatable(robot, {__index = param.robot})
 end
 
 robot.applyJoints = function(self, values)
@@ -14,6 +11,10 @@ robot.applyJoints = function(self, values)
         -- sim.setJointTargetPosition(jointHandles[i],values[i])
         sim.setJointPosition(self.joint.handles[i], values[i])
     end
+end
+
+robot.setGripper=function(self,g)
+    robot.gripper=g
 end
 
 --获取当前构型
@@ -32,10 +33,6 @@ robot.setConfig = function(self, config)
     end
 end
 
---设置机械爪
-robot.setGripper = function(self, gripper)
-    self.gripper = gripper
-end
 
 robot.getCollisionPairs = function(self)
     local p = {
@@ -247,9 +244,6 @@ robot.findPath = function(self, startConfig, goalConfigs)
                 path = _path
             end
         end
-        -- if path and showPath then
-        --     common:visualizePath(path)
-        -- end
     end
     --    forbidThreadSwitches(false)
     simOMPL.destroyTask(task)
@@ -270,7 +264,7 @@ robot.findShortestPath = function(self, startConfig, goalConfigs)
 end
 
 --路径规划
-robot.getPlaningPath = function(self, targetMatrix)
+robot.getOMPLPlaningPath = function(self, targetMatrix)
     -- path,lengths=common:loadPath(rdsHandle,'jacoPath_1')     --加载保存的路径
     --进行可用构型搜索
     sim.addStatusbarMessage("开始搜索可用目标构型...")
@@ -418,21 +412,53 @@ robot.executeMotion = function(self, path, lengths)
     sim.rmlRemove(rmlHandle)
 end
 
-robot.replaningAndExcuteMotion = function(self, targetMatrix, maxCount)
-    local count = maxCount or math.huge --maxCount为nil时无限循环
+
+--绝对移动:不改变目标的姿态
+robot.moveObjectToAbsTxyz=function(self,objHandle,pos,method)
+    local euler=sim.getObjectOrientation(objHandle,-1)
+    local matrix=sim.buildMatrix(pose,euler)
+    self:moveToPoseMatrix(matrix,method)
+end
+
+--相对移动
+robot.moveObjectToRelativeTxyzRxyz=function(self,objHandle,pos,euler,method)
+    local pos=pos or {0,0,0}
+    local euler=euler or {0,0,0}
+    local baseMatrix=sim.getObjectMatrix(objHandle,-1)
+    local matrix=sim.buildMatrix(pos,euler)
+    local targetMatrix=sim.multiplyMatrices(baseMatrix,matrix)
+    self:moveToPoseMatrix(targetMatrix,method)
+end
+
+
+
+robot.moveToPoseMatrix = function(self, targetMatrix,method)
+    local count = self.maxPlanAttempts or math.huge --maxCount为nil时无限循环
+    local method=method or "OMPL"
+    local path, lengths=nil,nil
     for i = 1, count do
-        local path, lengths = self:getPlaningPath(targetMatrix)
+        if method=="OMPL" then
+            path, lengths = self:getOMPLPlaningPath(targetMatrix)
+        else
+            path, lengths = self:getIKPlaningPath(targetMatrix)
+        end
         --如果找到最短路径则保存路径和能量累加值
         if path then
-            sim.addStatusbarMessage("路径规划成功，保存该路径")
-
-            --路径参数化，然后执行
-            sim.addStatusbarMessage("执行动作1: 达到目标姿态点")
+            sim.addStatusbarMessage(method.." :路径规划成功")
             self:executeMotion(path, lengths)
             return
         else
-            sim.addStatusbarMessage("未搜索到可用路径,路径规划失败")
-            return
+            if method=="OMPL" then
+                sim.addStatusbarMessage("OMPL路径规划失败第"..i.."次")
+                if i==count then
+                    sim.addStatusbarMessage("OMPL路径规划失败,目标无法到达")
+                    return
+                end
+            else
+                sim.addStatusbarMessage("IK路径规划失败,切换OMPL路径规划")
+                self:moveToPoseMatrix(targetMatrix,"OMPL")
+                return
+            end
         end
     end
 end
@@ -451,23 +477,29 @@ robot.forbidThreadSwitches = function(self, forbid)
     end
 end
 
-robot.generateIkPath = function(targetMatrix, ignoreCollisions)
+robot.getIKPlaningPath = function(self,targetMatrix)
     --生成从当前构型到目标位姿的、线性的、无碰撞的构型
     self:forbidThreadSwitches(true)
-    local currentConfig = self:getConfig()
-    self:setConfig(currentConfig)
-    sim.setObjectMatrix(ikTarHandle, -1, targetMatrix)
-    local coll = self.collision.pairs
-    if ignoreCollisions then
+    local config = self:getConfig()
+    -- self:setConfig(config)
+    sim.setObjectMatrix(self.ik.targetHandle, -1, targetMatrix)
+    local coll = self.collisions.robotColHandle
+    if self.ik.ignoreCollisions then
         coll = nil
     end
-    local c = sim.generateIkPath(self.ik.pinvHandle, self.joint.handles, self.ikSteps, coll)
-    self:setConfig(currentConfig)
+    local c = sim.generateIkPath(self.ik.pinvHandle, self.joint.handles, self.ik.pathPointCount, coll)
+    --失败后换成dls
+    if c==nil then
+        c = sim.generateIkPath(self.ik.dlsHandle, self.joint.handles, self.ik.pathPointCount, coll)
+    end
+    self:setConfig(config)
     self:forbidThreadSwitches(false)
     if c then
         return c, self:getPathLengthTable(c)
+    else
+        return nil, nil
     end
-    return nil, nil
+    
 end
 
 return robot
