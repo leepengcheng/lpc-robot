@@ -2,7 +2,8 @@
 import vrep
 import numpy as np
 from math import tan
-def getCameraMatrix(angle,resolution,flatten=True):
+
+def getVirtualCamInternalMatrix(angle,resolution,flatten=True):
     '''获取相机的内参和投影矩阵
     @angle为视场角的弧度
     @flatten:为true时转换为1维list
@@ -28,7 +29,7 @@ def getCameraMatrix(angle,resolution,flatten=True):
     return map(lambda x:x.flatten().tolist(),(K,P))
 
 
-def getCameraParameter(clientID, sensorHandle):
+def getVirtualCamAdditionalMatrix(clientID, sensorHandle):
     "获得深度相机的近景/远景距离/视场角/分辨率"
     err, nearClip = vrep.simxGetObjectFloatParameter(
         clientID, sensorHandle, vrep.sim_visionfloatparam_near_clipping, vrep.simx_opmode_oneshot_wait)

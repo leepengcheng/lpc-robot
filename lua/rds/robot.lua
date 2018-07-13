@@ -416,7 +416,7 @@ end
 --绝对移动:不改变目标的姿态
 robot.moveObjectToAbsTxyz=function(self,objHandle,pos,method)
     local euler=sim.getObjectOrientation(objHandle,-1)
-    local matrix=sim.buildMatrix(pose,euler)
+    local matrix=sim.buildMatrix(pos,euler)
     self:moveToPoseMatrix(matrix,method)
 end
 

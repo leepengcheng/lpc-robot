@@ -53,8 +53,8 @@ if clientID!=-1:
     res, sensorHandle = vrep.simxGetObjectHandle(clientID, 'Vision_sensor#', vrep.simx_opmode_oneshot_wait)
     res, boxHandle = vrep.simxGetObjectHandle(clientID, 'aruco_box', vrep.simx_opmode_oneshot_wait)
     #获得深度相机的近景/远景距离/视场角/分辨率
-    nearClip,farClip,angle,resolution=getCameraParameter(clientID,sensorHandle)
-    camMat=getCameraMatrix(angle,resolution,False)            #相机内参
+    nearClip,farClip,angle,resolution=getVirtualCamAdditionalMatrix(clientID,sensorHandle)
+    camMat=getVirtualCamInternalMatrix(angle,resolution,False)            #相机内参
     distMat=np.array([0,0,0,0,0],dtype=np.float64) #畸变系数
     #相机全局坐标系下的位置和姿态
     err,sensorPostion=vrep.simxGetObjectPosition(clientID,sensorHandle,-1,vrep.simx_opmode_oneshot_wait)
