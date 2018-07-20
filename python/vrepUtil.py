@@ -1,47 +1,46 @@
-#coding:utf-8
+# coding:utf-8
 import vrep
-
 import functools
 import subprocess as sp
 import warnings
 from inspect import getargspec
-import os
 import numpy as np
 import psutil
 import os
 import socket
 from contextlib import closing
 import atexit
+import types
+
 
 
 list_of_instances = []
 
 
-
-def getVirtualCamInternalMatrix(angle,resolution,flatten=True):
+def getVirtualCamInternalMatrix(angle, resolution, flatten=True):
     '''获取相机的内参和投影矩阵
     @angle为视场角的弧度
     @flatten:为true时转换为1维list
     '''
-    res =resolution
-    cx = cy = res[0] * 0.5  
-    #方法1:间接求
+    res = resolution
+    cx = cy = res[0] * 0.5
+    # 方法1:间接求
     # f = 0.008  # 相机焦距:单位mm(虚拟焦距)
     # dx = dy = tan(angle / 2) * f / (cx * 0.5)  # 单个像素大小
     # fx = f / dx #焦距的像素长度
     # fy = f / dy
-    #方法2:直接求
-    fx=fy=cx/np.tan(angle / 2) 
+    # 方法2:直接求
+    fx = fy = cx / np.tan(angle / 2)
     Tx = Ty = 1
     K = np.array([[fx, 0, cx],
-                [0, fy, cy],
-                [0, 0,   1]],dtype=np.float64)  # 相机内参
+                  [0, fy, cy],
+                  [0, 0, 1]], dtype=np.float64)  # 相机内参
     P = np.array([[fx, 0, cx, 0],
-                [0, fy, cy, 0],
-                [0, 0,   1, 0]],dtype=np.float64) # 投影矩阵
+                  [0, fy, cy, 0],
+                  [0, 0, 1, 0]], dtype=np.float64)  # 投影矩阵
     if not flatten:
         return K
-    return map(lambda x:x.flatten().tolist(),(K,P))
+    return map(lambda x: x.flatten().tolist(), (K, P))
 
 
 def getVirtualCamAdditionalMatrix(clientID, sensorHandle):
@@ -56,8 +55,7 @@ def getVirtualCamAdditionalMatrix(clientID, sensorHandle):
         clientID, sensorHandle, vrep.sim_visionintparam_resolution_x, vrep.simx_opmode_oneshot_wait)
     err, res_y = vrep.simxGetObjectIntParameter(
         clientID, sensorHandle, vrep.sim_visionintparam_resolution_y, vrep.simx_opmode_oneshot_wait)
-    return  nearClip,farClip,angle,(res_x,res_y)
-
+    return nearClip, farClip, angle, (res_x, res_y)
 
 
 def cleanup():  # kill all spawned subprocesses on exit
@@ -70,9 +68,7 @@ atexit.register(cleanup)
 
 def deprecated(msg=''):
     def dep(func):
-        '''This is a decorator which can be used to mark functions
-        as deprecated. It will result in a warning being emitted
-        when the function is used.'''
+        '''废弃API装饰器'''
 
         @functools.wraps(func)
         def new_func(*args, **kwargs):
@@ -87,6 +83,9 @@ def deprecated(msg=''):
         return new_func
 
     return deprecated
+
+
+
 
 
 # the class holding a subprocess instance.
@@ -127,38 +126,29 @@ class instance():
         return self
 
 
-# class holding a v-rep simulation environment.
-import types, random
-import numpy as np
+
+
 
 blocking = vrep.simx_opmode_blocking
 oneshot = vrep.simx_opmode_oneshot
 
 
 class vrepper():
-    def __init__(self,
-                 port_num=None,
-                 dir_vrep='',
-                 headless=False,
-                 suppress_output=True):
+    def __init__(self,port_num=None,dir_vrep='',headless=False,suppress_output=True):
         if port_num is None:
             port_num = self.find_free_port_to_use()
 
         self.port_num = port_num
 
         if dir_vrep == '':
-            print('(vrepper) trying to find V-REP executable in your PATH')
             import distutils.spawn as dsp
             path_vrep = dsp.find_executable('vrep.sh')  # fix for linux
             if path_vrep == None:
                 path_vrep = dsp.find_executable('vrep')
         else:
             path_vrep = dir_vrep + 'vrep'
-        print('(vrepper) path to your V-REP executable is:', path_vrep)
         if path_vrep is None:
-            raise Exception(
-                "Sorry I couldn't find V-Rep binary. "
-                "Please make sure it's in the PATH environmental variable")
+            raise Exception("Couldn't find V-Rep binary. ")
 
         # start V-REP in a sub process
         # vrep.exe -gREMOTEAPISERVERSERVICE_PORT_DEBUG_PREENABLESYNC
@@ -188,7 +178,7 @@ class vrepper():
         # assign every API function call from vrep to self
         vrep_methods = [
             a for a in dir(vrep) if not a.startswith('__')
-            and isinstance(getattr(vrep, a), types.FunctionType)
+                                    and isinstance(getattr(vrep, a), types.FunctionType)
         ]
 
         def assign_from_vrep_to_self(name):

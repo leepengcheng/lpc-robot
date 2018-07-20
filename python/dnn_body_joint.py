@@ -1,14 +1,17 @@
 #coding:utf-8
-import os,math,time
-from vrepper import core
-# sorry but that's how the namespace works
+import os
+import math
+import time
+import vrepUtil
 
-#有GUI
-venv = core.vrepper(headless=False)
+
+
+dir_vrep=os.getenv("VREP_ROOT")
+venv = vrepUtil.vrepper(dir_vrep=dir_vrep,headless=False)
 venv.start()
 
 #加载场景
-venv.load_scene(os.getcwd() + '/scenes/body_joint_wheel.ttt')
+venv.load_scene(os.getcwd() + '../scenes/body_joint_wheel.ttt')
 
 #加载
 body = venv.get_object_by_name('body')
