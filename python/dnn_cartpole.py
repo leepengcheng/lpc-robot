@@ -1,5 +1,4 @@
 #coding:utf-8
-from vrepUtil import vrepper
 
 import os,time
 import numpy as np
@@ -16,11 +15,11 @@ class CartPoleVREPEnv(gym.Env):
         venv.load_scene(os.getcwd() + '/scenes/cart_pole.ttt')
 
         #小车的滑动关节
-        self.slider = venv.get_object_by_name('car_joint_slider')
+        self.slider = venv.getObjectHandleByName('car_joint_slider')
         #小车本体
-        self.cart = venv.get_object_by_name('cart')
+        self.cart = venv.getObjectHandleByName('cart')
         #质量块(倒立摆)
-        self.mass = venv.get_object_by_name('mass')
+        self.mass = venv.getObjectHandleByName('mass')
 
 
         #小车的X位置/X速度
