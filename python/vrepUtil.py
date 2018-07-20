@@ -4,6 +4,9 @@ import numpy as np
 
 
 
+blocking=vrep.simx_opmode_blocking
+onshot=vrep.simx_opmode_oneshot
+
 def getVirtualCamInternalMatrix(angle, resolution, flatten=True):
     '''获取相机的内参和投影矩阵
     @angle为视场角的弧度
@@ -18,19 +21,30 @@ def getVirtualCamInternalMatrix(angle, resolution, flatten=True):
     # fy = f / dy
     # 方法2:直接求
     fx = fy = cx / np.tan(angle / 2)
-    Tx = Ty = 1
+    # Tx = Ty = 1
     K = np.array([[fx, 0, cx],
-                  [0, fy, cy],
-                  [0, 0, 1]], dtype=np.float64)  # 相机内参
+                    [0, fy, cy],
+                    [0, 0, 1]], dtype=np.float64)  # 相机内参
     P = np.array([[fx, 0, cx, 0],
-                  [0, fy, cy, 0],
-                  [0, 0, 1, 0]], dtype=np.float64)  # 投影矩阵
+                    [0, fy, cy, 0],
+                    [0, 0, 1, 0]], dtype=np.float64)  # 投影矩阵
     if not flatten:
         return K
     return map(lambda x: x.flatten().tolist(), (K, P))
 
 
-def getVirtualCamAdditionalMatrix(clientID, sensorHandle):
+
+
+def init(port=19997):
+    vrep.simxFinish(-1)  # 关闭所有连接
+    clientID = vrep.simxStart('127.0.0.1', port, True, True, 5000, 5)  # 开启连接
+    if clientID == -1:
+        raise NameError("Could not connect Vrep")
+    return clientID
+
+
+
+def getVirtualCamAdditionalMatrix(sensorHandle):
     "获得深度相机的近景/远景距离/视场角/分辨率"
     err, nearClip = vrep.simxGetObjectFloatParameter(
         clientID, sensorHandle, vrep.sim_visionfloatparam_near_clipping, vrep.simx_opmode_oneshot_wait)
@@ -43,4 +57,3 @@ def getVirtualCamAdditionalMatrix(clientID, sensorHandle):
     err, res_y = vrep.simxGetObjectIntParameter(
         clientID, sensorHandle, vrep.sim_visionintparam_resolution_y, vrep.simx_opmode_oneshot_wait)
     return nearClip, farClip, angle, (res_x, res_y)
-
