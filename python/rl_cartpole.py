@@ -1,6 +1,5 @@
 #coding:utf-8
-import vrepper
-from vrepper.core import vrepper
+from vrepUtil import vrepper
 
 import os,time
 import numpy as np
