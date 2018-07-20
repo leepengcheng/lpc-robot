@@ -374,10 +374,6 @@ class vrepper():
         res, img = check_ret(self.simxGetVisionSensorImage(object_id, 0, blocking))
         return self._convert_byte_image_to_color(res, img)
 
-    @staticmethod
-    def flip180(image):
-        return np.rot90(image, 2, (0, 1))
-
     def _convert_depth_to_image(self, res, depth):
         reshaped_scaled = 255 - np.array(depth).reshape(res) * 255  # because is in range [0,1] and inverted
         rounded = np.around(reshaped_scaled, 0).astype(np.uint8)
