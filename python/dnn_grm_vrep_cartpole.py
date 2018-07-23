@@ -25,6 +25,7 @@ class CartPoleVREPEnv(gym.Env):
         obs = np.array([np.inf]*6) #观测值
         act = np.array([1.])       #执行
 
+        #执行空间和观测空间的区间范围上下限
         self.action_space = spaces.Box(-act,act,dtype=np.float32)
         self.observation_space = spaces.Box(-obs,obs,dtype=np.float32)
 
@@ -39,12 +40,13 @@ class CartPoleVREPEnv(gym.Env):
 
     def observe(self):
 
-        # 观测action结果
+        # 观测action后的结果
         _,cartpos = vrep.simxGetObjectPosition(self.clientID,self.cart_handle,-1,blocking)
         _,masspos = vrep.simxGetObjectPosition(self.clientID,self.mass_handle,-1,blocking)
         _,cartvel,cart_angvel = vrep.simxGetObjectVelocity(self.clientID,self.cart_handle,blocking)
         _,massvel,mass_angvel = vrep.simxGetObjectVelocity(self.clientID,self.mass_handle,blocking)
 
+        #观测空间是6维的np.array
         self.observation = np.array([
             cartpos[0],cartvel[0],
             masspos[0],masspos[2],
@@ -52,7 +54,8 @@ class CartPoleVREPEnv(gym.Env):
             ],dtype=np.float32)
 
     def step(self,actions):
-        #将运动限制在-1,1
+
+        #将运动限制在-1,1(貌似没必要,除非外部认为指定时超过范围)
         actions = np.clip(actions, -1, 1)
 
         #小车随机速度值
@@ -73,7 +76,7 @@ class CartPoleVREPEnv(gym.Env):
         cost = mass_pos_z - (v**2) * 0.001
 
 
-        #观测值，reward,done,info
+        #观测值/reward/done/info
         return self.observation, cost, False, {}
 
     def reset(self):
@@ -101,7 +104,7 @@ if __name__ == '__main__':
     for k in range(5):
         observation = env.reset()
         for _ in range(20):
-        #   env.render()
+          # env.render()
           action = env.action_space.sample() #均匀分布随机运动
           observation, reward, done, info = env.step(action)
           print(reward)
