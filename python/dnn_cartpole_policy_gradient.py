@@ -11,7 +11,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical #类别分布
 
-
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
@@ -50,7 +49,7 @@ class Policy(nn.Module):
 policy = Policy()
 optimizer = optim.Adam(policy.parameters(), lr=1e-2)
 eps = np.finfo(np.float32).eps.item() #float32的最小值
-
+model_path=args.model_path if os.path.exists(args.model_path) else "./data.pkl"
 
 def select_action(state):
     '''
@@ -83,16 +82,15 @@ def finish_episode():
     rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
     for log_prob, reward in zip(policy.saved_log_probs, rewards):
         policy_loss.append(-log_prob * reward) #公式参见torch.distributions
-    optimizer.zero_grad()
-    #size=[1]*12 -> [12]
+    optimizer.zero_grad() #梯度清零
     policy_loss = torch.cat(policy_loss).sum()
     policy_loss.backward()
-    optimizer.step()
+    optimizer.step() #更新参数值
     del policy.rewards[:]  #注意不是del policy.rewards
     del policy.saved_log_probs[:]
 
 
-def main():
+def train():
     running_reward = 10
     for i_episode in count(1):
         state = env.reset()
@@ -111,15 +109,25 @@ def main():
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
         #gym/envs/__init__.py,CartPole-v0,reward_threshold=195.0
-        if t > 1000:
-        # if running_reward > env.spec.reward_threshold:
+        if running_reward > env.spec.reward_threshold:
             print("Solved! Running reward is now {} and "
                   "the last episode runs to {} time steps!".format(running_reward, t))
-            if not os.path.exists(model-path):
-                torch.save(policy.state_dict(),"./data.pkl")
+            torch.save(policy.state_dict(),model_path)
             break
+
+def test():
+    policy.load_state_dict(torch.load(model_path))
+    ##训练参数的个数
+    ##np.sum([p.numel() for p in policy.parameters() if p.requires_grad])
+    state = env.reset()
+    for t in count(1):
+        action = select_action(state)
+        state, reward, done, _ = env.step(action)
+        env.render()
+        print("count %d"%t)
 
 
 
 if __name__ == '__main__':
-    main()
+    # train()
+    test()
