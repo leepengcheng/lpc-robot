@@ -31,6 +31,7 @@ env.seed(args.seed)
 torch.manual_seed(args.seed)
 
 
+#输出向左/向右(0/1)的概率
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
@@ -43,22 +44,25 @@ class Policy(nn.Module):
     def forward(self, x):
         x = F.relu(self.affine1(x))
         action_scores = self.affine2(x)
-        return F.softmax(action_scores, dim=1)
+        return F.softmax(action_scores, dim=1) #注意dim=1
 
 
 policy = Policy()
 optimizer = optim.Adam(policy.parameters(), lr=1e-2)
 eps = np.finfo(np.float32).eps.item() #float32的最小值
-model_path=args.model_path if os.path.exists(args.model_path) else "./data.pkl"
+model_path=args.model_path if os.path.exists(args.model_path) else "./data1.pkl"
+
+
 
 def select_action(state):
     '''
+    选择action=0,1
     probs=torch.Tensor([0.2,0.4,0.4])
     当action=m.sample()=0时,表示随机到了index=0的对象,该对象的概率p=0.2
     此时：m.log_prob(action)=math.log(0.2)
     '''
     state = torch.from_numpy(state).float().unsqueeze(0)
-    probs = policy(state)
+    probs = policy(state) #probs.shape=(1,2)
     m = Categorical(probs) #生成概率分布(归一化)，对应的概率值为probs
     action = m.sample()    #根据对应的概率选择index=0~len(probs)
     policy.saved_log_probs.append(m.log_prob(action)) #选择对应action的概率,保存到list中
