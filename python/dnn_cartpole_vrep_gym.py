@@ -216,15 +216,15 @@ def train():
 def test():
     env = CartPoleVREPEnv()
     for k in count(1):
-    state = env.reset()
-    for _ in range(20):
-        # env.render()
-        action = env.action_space.sample() #均匀分布随机运动
-        state, reward, done, info = env.step(action)
-        print(reward)
-    print("*"*30)
-    env.close()
+        state = env.reset()
+        for _ in range(20):
+            # env.render()
+            action = env.action_space.sample() #均匀分布随机运动
+            state, reward, done, info = env.step(action)
+            print(reward)
+        print("*"*30)
+        env.close()
 
 
 if __name__ == '__main__':
-    torch
+    test()

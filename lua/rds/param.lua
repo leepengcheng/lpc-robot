@@ -2,9 +2,9 @@
 local param={}
 local robot={}
 robot.paramCount = 200 --构型检测的数目
-robot.maxVel = 1 --最大速度
-robot.maxAcc = 1 --最大加速度
-robot.maxJerk = 8000 --最大加加速度
+robot.maxVel = 0.8 --最大速度
+robot.maxAcc = 0.8 --最大加速度
+robot.maxJerk = 1000 --最大加加速度
 robot.forbidLevel = 0
 robot.metric = {0.2, 1, 0.8, 0.1, 0.1, 0.1,0.1} --关节能量权重
 robot.maxOMPLCalculationTime = 4 -- 单次路径规划的最长允许时间，单位s
