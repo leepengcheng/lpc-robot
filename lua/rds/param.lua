@@ -1,6 +1,7 @@
 --配置参数
 local param={}
 local robot={}
+local vrobot={}
 robot.paramCount = 200 --构型检测的数目
 robot.maxVel = 0.8 --最大速度
 robot.maxAcc = 0.8 --最大加速度
@@ -43,7 +44,7 @@ end
 
 --robotHandle
 robot.robotHandle=sim.getObjectHandle("RDS_01")
-
+vrobot.robotHandle=sim.getObjectHandle("RDS_01V")
 
 --ik
 robot.ik={
@@ -62,7 +63,7 @@ robot.collisions={
     objectColHandle=sim.getCollectionHandle("CollisionObjects")
 }
 
-setmetatable(param, {__index={robot=robot}})
+setmetatable(param, {__index={robot=robot,vrobot=vrobot}})
 
 
 -- param.new=function(self)
