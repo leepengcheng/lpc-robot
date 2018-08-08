@@ -1,61 +1,25 @@
+--@@控制脚本-单线程：碰撞检测
+local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds/lib"
+package.path=string.format( "%s;%s/?.lua",package.path,workdir)
 function getConfig()
     -- 返回机械臂的当前构型
     local config={}
-    for i=1,#jh,1 do
-        config[i]=simGetJointPosition(jh[i])
+    for i=1,7 do
+        config[i]=sim.getJointPosition(jh[i])
     end
     return config
 end
 
-function createShapeBoundingBoxAndJoints(shapeHandles,baseIndexTable)
-    --创建机械臂关节及包围盒模型
-    shapeHandles={}
-    jointHandles={}
-    for i=1,6,1 do
-        shapeHandles[i]=simGetObjectHandle(string.format("Jaco_link%s_visible",i))
-        jointHandles[i]=simGetObjectHandle(string.format("Jaco_joint%s",i))
-    end
-    shapeHandles[7]=simGetObjectHandle("JacoHand")
-    baseIndexTable={0,0,0,0,0,0,1}
-    simCopyPasteObjects(jointHandles,0) --复制关节
-    for i=1,#shapeHandles,1 do
-        objHandle=shapeHandles[i]
-        pos=simGetObjectPosition(objHandle,-1) --目标的坐标
-        ori=simGetObjectOrientation(objHandle,-1) --目标的方位
-        start=14
-        if baseIndexTable[i]==1 then
-            start=20
-            pos_tip=simGetObjectPosition(simGetObjectHandle("Jaco_tip"),-1)
-            for j=1,3,1 do
-                pos[j]=(pos[j]+pos_tip[j])/2.0
-            end
-        end
-        --获得对象的包围盒的尺寸
-        res,xmin=simGetObjectFloatParameter(objHandle,start+1)
-        res,ymin=simGetObjectFloatParameter(objHandle,start+2 )
-        res,zmin=simGetObjectFloatParameter(objHandle,start+3 )
-        res,xmax=simGetObjectFloatParameter(objHandle,start+4 )
-        res,ymax=simGetObjectFloatParameter(objHandle,start+5 )
-        res,zmax=simGetObjectFloatParameter(objHandle,start+6 )
-        xsize=xmax-xmin
-        ysize=ymax-ymin
-        zsize=zmax-zmin
-        --创建包围盒
-        boxHandle=simCreatePureShape(0,16,{xsize,ysize,zsize},0.0)
-        simSetObjectPosition(boxHandle,-1,pos)
-        simSetObjectOrientation(boxHandle,-1,ori)
-    end
-end
-
-
 function setConfig(config)
     -- 设置虚拟机械臂到指定构型
     if config then
-        for i=1,#jh,1 do
-            simSetJointPosition(jh_[i],config[i])
+        for i=1,7 do
+            sim.setJointPosition(jh_[i],config[i])
         end
     end
 end
+
+
 
 function loadPath(filename)
     path=simReadCustomDataBlock(jacoHandle,filename..'.pathData1')
@@ -90,10 +54,9 @@ function  checkCollision()
 end
 
 
-if (sim_call_type==sim_childscriptcall_initialization) then
-
-    -- 初始化
-    --对象获取
+-------------------时间循环--------------------------------------
+function sysCall_init()
+    vrobotHandle=sim.getObjectHandle("RDS_01V")
     C1Handle=simGetObjectHandle('Collision1')
     C2Handle=simGetObjectHandle('Collision2')
     jacoHandle=simGetObjectHandle('Jaco')   --机械臂对象(保存路径的对象)
@@ -126,7 +89,7 @@ end
 
 
 
-if (sim_call_type==sim_childscriptcall_actuation) then
+function sysCall_sensing()
     --逻辑如下
     --1，先判断实际机械臂与障碍距离是否小于设定阈值
     --2、如果小于，那么进行虚拟机械臂与障碍物检查，否则依旧发送命令command=start
@@ -172,4 +135,14 @@ if (sim_call_type==sim_childscriptcall_actuation) then
     --每隔 THRESHOLD_INTERVAL时间就进行检测
     -- thisTime=simGetSimulationTime()
     
+end
+
+
+
+function sysCall_actuation()
+    -- put your sensing code here
+end
+
+function sysCall_cleanup()
+    -- do some clean-up here
 end

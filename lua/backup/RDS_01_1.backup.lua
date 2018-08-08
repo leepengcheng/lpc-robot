@@ -263,7 +263,7 @@ findPath=function(startConfig,goalConfigs,cnt)
     jointLimitsH[3]=341*math.pi/180
 
     local task=simOMPL.createTask('task') --创建任务
-    simOMPL.setAlgorithm(task,OMPLAlgo)   --设置算法
+    simOMPL.setAlgorithm(task,algoOMPL)   --设置算法
     simOMPL.setVerboseLevel(task,0)       --设置消息级别
     
     local jSpaces={}
@@ -294,7 +294,7 @@ findPath=function(startConfig,goalConfigs,cnt)
         --     result,path = simExtOMPL_getPath(task)
         -- end
         --参数：maxSimplificationTime,用于简化路径的时间，-1表示默认；stateCnt：返回的差值路径点(构型)数量
-        local res,_path=simOMPL.compute(task,maxOMPLCalculationTime,-1,configCount)
+        local res,_path=simOMPL.compute(task,singlePlanTime,-1,configCount)
         if res and _path then
             local _l=getPathLength(_path)
             if _l<l then
@@ -468,7 +468,7 @@ function pathPlaning()
 
     --计算路径，返回200个构型*6个关节的角度值，200个构型对应的关节距离累加值
     sim.addStatusbarMessage('开始进行路径规划')
-    path,lengths=findShortestPath(getConfig(),configs,numberOfOMPLCalculationsPasses)
+    path,lengths=findShortestPath(getConfig(),configs,configPlanAttempts)
     return path,lengths
 end
 
@@ -502,10 +502,10 @@ maxJerk=8000 --最大加加速度
 forbidLevel=0 
 metric={0.2,1,0.8,0.1,0.1,0.1} --关节能量权重
 ikSteps=20                     --Ik
-maxOMPLCalculationTime=4 -- 单次路径规划的最长允许时间，单位s
+singlePlanTime=4 -- 单次路径规划的最长允许时间，单位s
 -- sim_ompl_algorithm_BKPIECE1
-OMPLAlgo=simOMPL.Algorithm.BKPIECE1 -- OMPL路径规划所用的算法
-numberOfOMPLCalculationsPasses=4 -- 单个目标构型的路径规划最大次数
+algoOMPL=simOMPL.Algorithm.BKPIECE1 -- OMPL路径规划所用的算法
+configPlanAttempts=4 -- 单个目标构型的路径规划最大次数
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 --清除上次生成的路径

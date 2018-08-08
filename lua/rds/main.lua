@@ -1,19 +1,23 @@
---添加工作路径
-local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds"
+--@@控制脚本-多线程：主程序
+local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds/lib" --添加工作路径
 package.path=string.format( "%s;%s/?.lua",package.path,workdir)
 local tools=require("tools")
 local gripper=require("gripper")
 local param=require("param")
 local robot=require("robot")
 local gripper=require("gripper")
+local const=require("const")
 
 function sysCall_threadmain()
     -- local ghandle=sim.getObjectHandle("Graph")
     
     local TOOLS=tools:new()
-
     local RDS=robot:new(param)
-    RDS:setGripper(gripper)
+    TOOLS:setRobot(RDS)
+
+    gripper:setWaitTime(1.0) --设置gripper的等待时间
+
+    RDS:setGripper(gripper) --设置机械臂的gripper
 
     local objects = {
         sim.getObjectHandle("target1"),
@@ -23,24 +27,21 @@ function sysCall_threadmain()
     }
 
     for i=1,4 do
-        RDS:moveObjectToRelativeTxyzRxyz(objects[i],{0,0,-0.1},nil,"IK")
+        local path1=RDS:moveObjectToRelativeTxyzRxyz(objects[i],{0,0,-0.1},nil,nil,"IK")
 
-        RDS:moveObjectToRelativeTxyzRxyz(objects[i],{0,0,-0.03},nil,"IK")
+        local path2=RDS:moveObjectToRelativeTxyzRxyz(objects[i],{0,0,-0.03},nil,const.action.close,"IK")
 
-        RDS.gripper:close()
+        local path3=RDS:moveObjectToAbsTxyz(objects[i],{0.3-i*0.1,0.4,0.1},const.action.open,"IK")
 
-        -- RDS:moveObjectToRelativeTxyzRxyz(objects[1],{-0.2,-0.2,-0.10},nil,"IK")
-        RDS:moveObjectToAbsTxyz(objects[i],{0.3-i*0.1,0.4,0.1},nil,"IK")
+        local path=TOOLS:tableConcat(path1,path2,path3)
 
-        RDS.gripper:open()
+        TOOLS:visualizePath(path,false)
+
+        sim.wait(2.0)
     end
 
-    RDS:moveObjectToRelativeTxyzRxyz(objects[4],{0,0,-0.1},nil,"IK")
-    RDS.gripper:close()
-    RDS:moveObjectToRelativeTxyzRxyz(objects[4],{0.1,0,0},nil,"IK")
-    RDS:moveObjectToRelativeTxyzRxyz(objects[4],{-0.06,0,0},nil,"IK")
-    
-
-
+    -- RDS:moveObjectToRelativeTxyzRxyz(objects[4],{0,0,-0.1},nil,const.action.close,"IK")
+    -- RDS:moveObjectToRelativeTxyzRxyz(objects[4],{0.1,0,0},nil,nil,"IK")
+    -- RDS:moveObjectToRelativeTxyzRxyz(objects[4],{-0.06,0,0},nil,nil,"IK")
 
 end 

@@ -1,5 +1,0 @@
-local objects={}
-
-
-
-return objects

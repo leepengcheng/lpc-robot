@@ -165,7 +165,7 @@ robot.findTopNCollisionFreeConfigs = function(self,targetMatrix)
     local cc = self:getConfig()
     local cs = {}
     local l = {}
-    for i = 1, self.param.trialCount do
+    for i = 1, self.param.attemptCount do
         --寻找最多maxConfigs个目标构型
         -- local c = self:findCollisionFreeConfig(targetMatrix)
         local c=sim.getConfigForTipPose(self.ik.pinvHandle, self.joint.handles, 0.65, 100, nil, {}, nil, self.joint.limitsL, self.joint.ranges)
@@ -221,7 +221,7 @@ end
 
 robot.findPath = function(self,startConfig, goalConfigs)
     local task = simOMPL.createTask("task") --创建任务
-    simOMPL.setAlgorithm(task, self.param.OMPLAlgo) --设置算法
+    simOMPL.setAlgorithm(task, self.param.algoOMPL) --设置算法
     simOMPL.setVerboseLevel(task, 0)     --设置消息级别
     local jSpaces = {}
     for i = 1,self.jointNum do
@@ -250,8 +250,8 @@ robot.findPath = function(self,startConfig, goalConfigs)
     local path = nil
     local l = math.huge
     --    forbidThreadSwitches(true)
-    --计算maxOMPLCalculationTime次目标构型
-    for i = 1, self.param.numberOfOMPLCalculationsPasses do
+    --计算planningTime次目标构型
+    for i = 1, self.param.configPlanAttempts do
         -- 等价于:
         -- simExtOMPL_setup(task)
         -- if simExtOMPL_solve(task, maxTime) then
@@ -260,7 +260,7 @@ robot.findPath = function(self,startConfig, goalConfigs)
         --     result,path = simExtOMPL_getPath(task)
         -- end
         --参数：maxSimplificationTime,用于简化路径的时间，-1表示默认；stateCnt：返回的差值路径点(构型)数量
-        local res, _path = simOMPL.compute(task, self.param.maxOMPLCalculationTime, -1, self.param.configCount)
+        local res, _path = simOMPL.compute(task, self.param.singlePlanTime, -1, self.param.configCount)
         if res and _path then
             local _l = self:getPathLength(_path)
             if _l < l then
