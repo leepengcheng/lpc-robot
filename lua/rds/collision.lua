@@ -1,6 +1,6 @@
 --@@控制脚本-单线程：碰撞检测
-local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds/lib"
-package.path=string.format( "%s;%s/?.lua",package.path,workdir)
+local dir=os.getenv("RDS") --添加工作路径
+package.path=string.format( "%s;%s/lib/?.lua",package.path,dir)
 function getConfig()
     -- 返回机械臂的当前构型
     local config={}

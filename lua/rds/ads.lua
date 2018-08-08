@@ -1,6 +1,7 @@
 --@@控制脚本-ADS通讯：
-local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds/lib" --添加工作路径
-package.path=string.format( "%s;%s/?.lua",package.path,workdir)
+local dir=os.getenv("RDS") --添加工作路径
+package.path=string.format( "%s;%s/lib/?.lua",package.path,dir)
+
 local const=require("const")
 local tools=require("tools")
 

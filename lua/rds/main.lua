@@ -1,6 +1,6 @@
 --@@控制脚本-多线程：主程序
-local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds/lib" --添加工作路径
-package.path=string.format( "%s;%s/?.lua",package.path,workdir)
+local dir=os.getenv("RDS") --添加工作路径
+package.path=string.format( "%s;%s/lib/?.lua",package.path,dir)
 local tools=require("tools")
 local gripper=require("gripper")
 local param=require("param")
@@ -43,5 +43,4 @@ function sysCall_threadmain()
     -- RDS:moveObjectToRelativeTxyzRxyz(objects[4],{0,0,-0.1},nil,const.action.close,"IK")
     -- RDS:moveObjectToRelativeTxyzRxyz(objects[4],{0.1,0,0},nil,nil,"IK")
     -- RDS:moveObjectToRelativeTxyzRxyz(objects[4],{-0.06,0,0},nil,nil,"IK")
-
 end 

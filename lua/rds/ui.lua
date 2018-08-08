@@ -1,6 +1,6 @@
 --控制脚本-多线程：UI
-local workdir="/media/lee/workspace/GitWorkSpace/lpc-robot/lua/rds/lib"
-package.path=string.format( "%s;%s/?.lua",package.path,workdir)
+local dir=os.getenv("RDS") --添加工作路径
+package.path=string.format( "%s;%s/lib/?.lua",package.path,dir)
 local tools=require("tools")
 local const=require("const")
 
