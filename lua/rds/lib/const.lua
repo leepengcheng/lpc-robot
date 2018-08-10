@@ -43,7 +43,15 @@ const.COM={
     ADS_CMD_READ=1,
     ADS_CMD_WRITE=2,
     ADS_CMD_READWRITE=3,
-    ADS_CMD_DESTROY=4
+    ADS_CMD_DESTROY=4,
+
+
+    --路径规划的命令
+    PLAN_CMD_NEW=0,
+    PLAN_CMD_STOP=1
+
+
+
 }
 
 const.SIGNAL={
@@ -53,11 +61,17 @@ const.SIGNAL={
     ADS_CMD="adsCmd"       --ads命令
 }
 
+const.TOPICS={
+    TRAJCMD="trajcmd", --发出开始执行轨迹命令
+    PLANCMD="plancmd", --发出开始规划的命令
+    ROBOSTATUS="robostatus" --采集到的关节数据/机器人状态
+}
+
 const.UI={
     comboSel=1000,
-    labelPath=1200,
     editPath=1201,
     buttonPath=1202,
+    editTarget=1203,
     editIndex=1300,
     editStep=1400,
     remoteID=2000,

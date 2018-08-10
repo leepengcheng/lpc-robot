@@ -5,6 +5,7 @@ tools.forbidLevel=0
 tools.robot=nil
 tools.colors={{1,0,0},{0,1,0},{0,0,1},{1,1,0},{0,1,1}} --可用颜色
 
+
 --清除路径数据
 tools.clearPath=function(self,handle)
     sim.writeCustomDataBlock(handle, "", nil)
@@ -192,6 +193,30 @@ tools.saveUiConfig=function(self)
     print("Function saveUiConfig() : Not Implement")
 end
 
+tools.createUiHeader=function(self,title,size)
+    title=title or "RDS智能分拣系统"
+    size=size or  "400,200"
+    return string.format([[<ui title="%s"  closeable="false"  resizable="false" size="%s">]],title,size)
+end
+
+
+tools.createUiTab=function(self,xml,title,layout)
+    title=title or ""
+    layout=layout or  "grid"
+    return string.format([[<tab title="%s" layout="%s" >%s</tab>]],title,layout,xml)
+end
+
+tools.createUiFromTabs=function(self,tabs,header)
+    local title,size=header
+    local headerXml=self:createUiHeader(title,size)
+    local bodyXml=""
+    for i=1,#tabs do
+        bodyXml=bodyXml..tabs[i]
+    end
+    return string.format("%s<tabs>%s</tabs></ui>",headerXml,bodyXml)
+
+end
+
 
 --新建窗口
 tools.createUi=function(self,xml,model,loadFunc,saveFunc)
@@ -214,6 +239,8 @@ tools.showUi=function(self)
         self:new(self.xml,self.model)
     end
 end
+
+
 
 
 
@@ -251,25 +278,55 @@ tools.parseADSNetID=function(self,idstr)
     return data
  end
 
+--B0 UI发布命令的handle
+-- tools.trajCmdPubHandle=nil
+-- tools.trajCmdSubHandle=nil
+
+-- --信号
+-- tools.sendTrajCmdSignal=function(self,signal,handle)
+--     handle=handle or self.trajCmdPubHandle
+--     if not handle then
+--         error("Wrong BlueZero Handle")
+--     end
+--     -- sim.setIntegerSignal(const.SIGNAL.TRAJ_CMD,signal)
+--     simB0.publish(handle,signal)
+-- end
+
+-- tools.sendAdsCmdSignal=function(self,signal)
+--     handle=handle or self.trajCmdPubHandle
+--     if not handle then
+--         error("Wrong BlueZero Handle")
+--     end
+--     -- sim.setIntegerSignal(const.SIGNAL.ADS_CMD,signal)
+--     simB0.publish(self.trajCmdPubHandle,signal)
+-- end
 
 
---信号
-tools.sendTrajCmdSignal=function(self,signal)
-    sim.setIntegerSignal(const.SIGNAL.TRAJ_CMD,signal)
+-- tools.readAdsCmdSignal=function(self,func,handle)
+--     -- return sim.getIntegerSignal(const.SIGNAL.ADS_CMD)
+--     local data=simB0.sub(self.trajCmdPubHandle)
+--     return data
+    
+-- end
+
+-- tools.readTrajCmdSignal=function(self,func,handle)
+--     handle=handle or self.trajCmdPubHandle
+--     -- return sim.getIntegerSignal(const.SIGNAL.TRAJ_CMD)
+--     local data=simB0.sub(self.trajCmdPubHandle)
+-- end
+
+
+
+---b0
+tools.initResolverB0=function(self,isShow)
+    local show=isShow or 1
+    if not simB0.pingResolver() then
+        print('启动ZeroMQ 服务器')
+        sim.launchExecutable('b0_resolver','',show)
+        if not simB0.pingResolver() then
+            error("Can not Start Server")
+        end
+    end
 end
-
-tools.sendAdsCmdSignal=function(self,signal)
-    sim.setIntegerSignal(const.SIGNAL.ADS_CMD,signal)
-end
-
-
-tools.readAdsCmdSignal=function(self)
-    return sim.getIntegerSignal(const.SIGNAL.ADS_CMD)
-end
-
-tools.readTrajCmdSignal=function(self)
-    return sim.getIntegerSignal(const.SIGNAL.TRAJ_CMD)
-end
-
 
 return tools

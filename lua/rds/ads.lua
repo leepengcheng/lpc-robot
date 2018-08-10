@@ -185,30 +185,37 @@ end
 function pauseTrajectory()
     writeTrajectory(const.COM.TRAJ_CMD_PAUSE,{})
 end
----事件循环
-function sysCall_init()
+
+function on_sub_trajcmd(packedData)
+    local data=sim.unpackTable(packedData)
+    print("ADS RECEIVE: "..data[1])
+end
+
+function sysCall_threadmain()
     -- adsHasInit=initADSConnection()
-end
-
-function sysCall_actuation()
-
-end
-
-function sysCall_sensing()
-    -- --------读机器人状态
+        -- --------读机器人状态
     -- if readAddr and adsHasInit  then
     --     readRobotStatus(true)
     -- end
-    local traj_cmd=tools:readTrajCmdSignal()
-    if traj_cmd then
-        print(traj_cmd)
-    else
-        print("no signal")
+    --#####BlueZero##################
+    adsNode=simB0.create("adsNode")
+    --发送传感器数据
+    topicPubRoboStatus=simB0.createPublisher(adsNode,const.TOPICS.ROBOSTATUS)
+
+    --接受轨迹命令 new|start|pause|stop,转换为ADS
+    topicSubTrajCmd=simB0.createSubscriber(adsNode,const.TOPICS.TRAJCMD,'on_sub_trajcmd')
+    simB0.init(adsNode)
+    while sim.getSimulationState()~=sim.simulation_advancing_abouttostop do
+        simB0.spinOnce(adsNode)
+        sim.switchThread() -- resume in next simulation step
     end
 end
 
+
+--停止
 function sysCall_cleanup()
-    -- readAddr=READ_ADDR_BACKUP --销毁时需要回原地址
+
+        -- readAddr=READ_ADDR_BACKUP --销毁时需要回原地址
 
     -- if writeAddr and adsHasInit then
     --     simADS.write(writeAddr,{},simADS_handle_close)  --close write Handle
@@ -223,4 +230,15 @@ function sysCall_cleanup()
     --     simADS.destory()
     --     adsHasInit=false
     -- end
+    if adsNode then
+        simB0.cleanup(adsNode)
+        if topicSubTrajCmd then
+            simB0.destroySubscriber(topicSubTrajCmd)
+        end
+        if topicPubRoboStatus then
+            simB0.destroyPublisher(topicPubRoboStatus)
+        end
+        simB0.destroy(adsNode)
+    end
+
 end
