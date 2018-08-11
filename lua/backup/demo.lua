@@ -18,7 +18,7 @@ local CONST={
     --机器人错误码 uint16
     ROBO_ERRORCODE_NONE=0,  --无错误
     ROBO_ERRORCODE_ALARM=10, --报警错误
-    PTS_NUMBER=100000  --最大的轨迹点的数据
+    MAX_PTS_NUMBER=100000  --最大的轨迹点的数据
 }
 
 local UIID={
@@ -371,8 +371,8 @@ function writeTrajectory(cmd,pts,index,step)
     local index=index or 1
     local size=#pts/7
     --限制最大值
-    if size>=CONST.PTS_NUMBER then
-        size=CONST.PTS_NUMBER
+    if size>=CONST.MAX_PTS_NUMBER then
+        size=CONST.MAX_PTS_NUMBER
     end
 
     local data={}

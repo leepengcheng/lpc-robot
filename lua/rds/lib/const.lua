@@ -35,7 +35,7 @@ const.COM={
     --机器人错误码 uint16
     ROBO_ERRORCODE_NONE=0,  --无错误
     ROBO_ERRORCODE_ALARM=10, --报警错误
-    PTS_NUMBER=100000,  --最大的轨迹点的数据
+    MAX_PTS_NUMBER=100000,  --最大的轨迹点的数据
 
 
     --ADS命令 初始化|读取|写入|读写|销毁
@@ -62,6 +62,7 @@ const.SIGNAL={
 }
 
 const.TOPICS={
+    ADSCMD="adscmd",  --ADS控制命令,初始化|关闭
     TRAJCMD="trajcmd", --发出开始执行轨迹命令
     PLANCMD="plancmd", --发出开始规划的命令
     ROBOSTATUS="robostatus" --采集到的关节数据/机器人状态

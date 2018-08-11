@@ -413,6 +413,7 @@ robot.execTrajectory = function(self, path, lengths)
 
     --时间化的轨迹
     local traj={}
+    local n=1
     while res == 0 do
         dt = sim.getSimulationTimeStep()
         res, posVelAccel, sync = sim.rmlStep(rmlHandle, dt)
@@ -436,7 +437,9 @@ robot.execTrajectory = function(self, path, lengths)
                             ) *
                                 t
                     end
-                    table.insert(traj,jointPos)
+                    -- table.insert(traj,jointPos)
+                    traj[n]=jointPos
+                    n=n+1
                     self:applyJoints(jointPos)
                     break
                 end

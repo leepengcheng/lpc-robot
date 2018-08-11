@@ -143,10 +143,13 @@ end
 tools.tableConcat=function(self,...)
  local paths={...}
  local data={}
+ local n=1
  for i=1,#paths do
     local p=paths[i]
     for j=1,#p do
-        table.insert( data,p[j])
+        -- table.insert( data,p[j]) --效率较低
+        data[n]=p[j]
+        n=n+1
     end
  end
  return data
@@ -193,10 +196,12 @@ tools.saveUiConfig=function(self)
     print("Function saveUiConfig() : Not Implement")
 end
 
-tools.createUiHeader=function(self,title,size)
+tools.createUiHeader=function(self,header)
+    local title,size,pos=header
     title=title or "RDS智能分拣系统"
     size=size or  "400,200"
-    return string.format([[<ui title="%s"  closeable="false"  resizable="false" size="%s">]],title,size)
+    pos=pos or "290,90"
+    return string.format([[<ui title="%s"  closeable="false"  resizable="false" size="%s" position="%s">]],title,size,pos)
 end
 
 
@@ -207,8 +212,7 @@ tools.createUiTab=function(self,xml,title,layout)
 end
 
 tools.createUiFromTabs=function(self,tabs,header)
-    local title,size=header
-    local headerXml=self:createUiHeader(title,size)
+    local headerXml=self:createUiHeader(header)
     local bodyXml=""
     for i=1,#tabs do
         bodyXml=bodyXml..tabs[i]
@@ -273,7 +277,8 @@ tools.parseADSNetID=function(self,idstr)
     strlist=string.split(idstr,"([^.]+)")
     local data={}
     for i=1,6 do
-        table.insert( data, tonumber(strlist[i]))
+        -- table.insert( data, tonumber(strlist[i]))
+        data[i]=tonumber(strlist[i])
     end
     return data
  end
@@ -327,6 +332,77 @@ tools.initResolverB0=function(self,isShow)
             error("Can not Start Server")
         end
     end
+end
+
+
+
+tools.vrep_Uint32_Float32=function(self,uint32NumTable)
+    local numBuffer=sim.packUInt32Table(uint32NumTable)
+    local float32NumTable=sim.unpackFloatTable(numBuffer)
+    return float32NumTable[1]
+end
+
+tools.vrep_Uint16x2_Float32=function(self,uint16NumTable)
+    local numBuffer=sim.packUInt16Table(uint16NumTable)
+    local float32NumTable=sim.unpackFloatTable(numBuffer)
+    return float32NumTable[1]
+end
+
+
+
+tools.vrep_Uint16x2_Float32=function(self,uint16NumTable)
+    local numBuffer=sim.packUInt16Table(uint16NumTable)
+    local float32NumTable=sim.unpackFloatTable(numBuffer)
+    return float32NumTable[1]
+end
+
+--打包需要发送的数据
+tools.packTrajData=function(self,cmd,path,index,step)
+    path=path or {}
+    step=step or 1
+    index=index or 1
+    local ptsNum=#path
+    local size= ptsNum/7  --size:轨迹点的数目(每个轨迹点包含7个关节的数据))
+    --限制size最大值
+    if size>=const.COM.MAX_PTS_NUMBER then
+        size=const.COM.MAX_PTS_NUMBER
+    end
+
+    local data={}
+    data[1]=self:vrep_Uint16x2_Float32({cmd,step})
+    if size>0 then
+        data[2]=self:vrep_Uint32_Float32({size})
+        data[3]=self:vrep_Uint32_Float32({index})
+        for i=1,ptsNum do
+            data[i+3]=path[i]
+        end
+    end
+    return data
+end
+
+
+--解析数据,返回ROBOT_STATUS对象
+tools.unpackRobotStatus=function(self,readData)
+    local buffer=sim.packFloatTable(readData)
+    local buffer_args=string.sub(buffer,1,6)
+    local buffer_errorcode=string.sub(buffer,7,8)
+    local buffer_positions=string.sub(buffer,9)
+
+    local d1=sim.unpackUInt8Table(buffer_args)
+    local d2=sim.unpackUInt16Table(buffer_errorcode)
+    local d3=sim.unpackFloatTable(buffer_positions)
+
+    local robo_statu={}
+    robo_statu.driverPowered=d1[1]; --//驱动是否上电
+    robo_statu.eStopped=d1[2];  --//是否非正常停止(如碰撞)
+    robo_statu.inError=d1[3];  --//是否发生错误
+    robo_statu.inMotion=d1[4];  --//是否在运动
+    robo_statu.motionPossible=d1[5]; --//是否可以运动
+    robo_statu.mode=d1[6]; --//当前的模式 自动/手动/未知
+    robo_statu.errorCode=d2[1];   --//Uint16(错误码：自定义)
+    robo_statu.position=d3
+    
+    return robo_statu
 end
 
 return tools
