@@ -197,18 +197,22 @@ tools.saveUiConfig=function(self)
 end
 
 tools.createUiHeader=function(self,header)
-    local title,size,pos=header
+    local title,size,pos=header[1],header[2],header[3]
     title=title or "RDS智能分拣系统"
     size=size or  "400,200"
     pos=pos or "290,90"
-    return string.format([[<ui title="%s"  closeable="false"  resizable="false" size="%s" position="%s">]],title,size,pos)
+    return string.format([[<ui title="%s"  closeable="false"  resizable="true" size="%s" position="%s">]],title,size,pos)
 end
 
 
 tools.createUiTab=function(self,xml,title,layout)
     title=title or ""
-    layout=layout or  "grid"
-    return string.format([[<tab title="%s" layout="%s" >%s</tab>]],title,layout,xml)
+    if layout then
+        return string.format([[<tab title="%s" layout="%s" >%s</tab>]],title,layout,xml)
+    else
+        return string.format([[<tab title="%s">%s</tab>]],title,xml)
+    end
+    
 end
 
 tools.createUiFromTabs=function(self,tabs,header)
@@ -403,6 +407,52 @@ tools.unpackRobotStatus=function(self,readData)
     robo_statu.position=d3
     
     return robo_statu
+end
+---格式化输出robotStatus
+tools.stringFormatRobotStatus=function(self,status)
+    local s1="驱动上电:%s"
+    if status.driverPowered==const.COM.ROBO_STATUS_TRUE then
+        s1=string.format(s1,"YES")
+    else
+        s1=string.format(s1,"NO")
+    end
+
+    local s2="非正常停止:%s"
+    if status.eStopped==const.COM.ROBO_STATUS_TRUE then
+        s2=string.format(s2,"YES")
+    else
+        s2=string.format(s2,"NO")
+    end
+
+    local s3="发生错误:%s"
+    if status.inError==const.COM.ROBO_STATUS_TRUE then
+        s3=string.format(s3,"YES")
+    else
+        s3=string.format(s3,"NO")
+    end
+
+    local s4="正在运动:%s"
+    if status.inMotion==const.COM.ROBO_STATUS_TRUE then
+        s4=string.format(s4,"YES")
+    else
+        s4=string.format(s4,"NO")
+    end
+
+    local s5="能否运动:%s"
+    if status.motionPossible==const.COM.ROBO_STATUS_TRUE then
+        s5=string.format(s5,"YES")
+    else
+        s5=string.format(s5,"NO")
+    end
+
+    s5=string.format("错误码:%d",status.errorCode)
+
+    s6=string.format("关节位置:%f %f %f %f %f %f %f",status.position[1],
+    status.position[2],status.position[3],
+    status.position[4],status.position[5],
+    status.position[6],status.position[7])
+    s=string.format("%s %s %s %s %s %s\n",s1,s2,s3,s4,s5,s6)
+    return s
 end
 
 return tools

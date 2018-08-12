@@ -11,6 +11,9 @@ function loadConfig(self)
     --init
     simUI.insertComboboxItem(self.ui,const.UI.comboSel,0,"自动")
     simUI.insertComboboxItem(self.ui,const.UI.comboSel,1,"手动")
+    for i=1,7 do
+        simUI.addTreeItem(self.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""})
+    end
     --populate data
     local data=self:readInfo(const.SIGNAL.UI_PARAM)
     simUI.setEditValue(self.ui,const.UI.editPath,data.editPath or "")
@@ -96,35 +99,54 @@ function isFileExist(name)
 
 function initUIXml()
     local tab1Xml=string.format([[
-        <label style="font:13px;color:rgba(0,0,255,255)" text="路径规划方式" />
+
         <combobox id="%d" on-change="onComboselChanged" />
-        <edit  id="%d" enabled="false" />
-        <button id="%d" text="路径文件" enabled="false" on-click="on_openfile_click"/>
-        <br />
+        <group layout="grid" id="8800" visible="true">
+            <label style="font:13px;color:rgba(0,0,255,255)" text="请选择路径文件(关节数据用空格区分)"/><br/>
+            <edit  id="%d"  />
+            <button id="%d" text="选择" on-click="on_openfile_click"/>
+            <button  text="选择" on-click="on_openfile_click"/>
+        </group>
+        <edit  id="%d" />
         <button text="路径规划" on-click="on_plan_click"/>
-        <edit  id="%d" /><br />
-        <button text="发送路径" on-click="on_traj_new_click"/>
-        <button text="开始运动" on-click="on_traj_start_click"/>
-        <button text="暂停运动" on-click="on_traj_pause_click"/>
-        <button text="停止运动" on-click="on_traj_stop_click"/>
-    ]],const.UI.comboSel,const.UI.editPath,const.UI.buttonPath,const.UI.editTarget)
-    local tab1=tools:createUiTab(tab1Xml,"主界面","grid")
+        <tree id="%d" autosize-header="true">
+            <header>
+                <item>   路径ID</item>
+                <item>路径点数量</item>
+                <item> 初始位姿</item>
+                <item> 目标位姿</item>
+            </header>
+        </tree>
+
+        <group layout="grid">
+            <button text="发送路径" on-click="on_traj_new_click"/>
+            <button text="开始运动" on-click="on_traj_start_click"/><br/>
+            <button text="暂停运动" on-click="on_traj_pause_click"/>
+            <button text="停止运动" on-click="on_traj_stop_click"/>
+        </group>
+    ]],const.UI.comboSel,const.UI.editPath,const.UI.buttonPath,const.UI.editTarget,const.UI.treePathStatus)
+    local tab1=tools:createUiTab(tab1Xml,"主界面")
     ----------------------------------------------------------------------------------------------
 
     local tab2Xml=string.format([[
-    <label style="font:13px;color:rgba(0,0,255,255)" text="远程NetID" />
-    <edit  id="%d" />
-    <label style="font:13px;color:rgba(0,0,255,255)" text="远程IP " />
-    <edit  id="%d"/>
-    <label style="font:13px;color:rgba(0,0,255,255)" text="本地NetID" />
-    <edit  id="%d" />
-    <label style="font:13px;color:rgba(0,0,255,255)" text="数据读取地址" />
-    <edit  id="%d"  />
-    <label style="font:13px;color:rgba(0,0,255,255)" text="数据写入地址" />
-    <edit  id="%d"  />
-    <button text="打开ADS连接" on-click="on_ads_init_click"/>
-    <button text="关闭ADS连接" on-click="on_traj_destroy_click"/>]],const.UI.remoteID,const.UI.remoteIP,const.UI.localID,const.UI.editReadAddr,const.UI.editWriteAddr)
-    local tab2=tools:createUiTab(tab2Xml,"ADS设置","form")
+    <group layout="form">
+        <label style="font:13px;color:rgba(0,0,255,255)" text="远程NetID" />
+        <edit  id="%d" />
+        <label style="font:13px;color:rgba(0,0,255,255)" text="远程IP " />
+        <edit  id="%d"/>
+        <label style="font:13px;color:rgba(0,0,255,255)" text="本地NetID" />
+        <edit  id="%d" />
+        <label style="font:13px;color:rgba(0,0,255,255)" text="数据读取地址" />
+        <edit  id="%d"  />
+        <label style="font:13px;color:rgba(0,0,255,255)" text="数据写入地址" />
+        <edit  id="%d"  />
+    </group>
+    <group layout="vbox">
+        <button text="打开ADS连接" on-click="on_ads_init_click"/>
+        <button text="关闭ADS连接" on-click="on_traj_destroy_click"/>
+    </group>]],const.UI.remoteID,const.UI.remoteIP,const.UI.localID,const.UI.editReadAddr,const.UI.editWriteAddr)
+    
+    local tab2=tools:createUiTab(tab2Xml,"ADS设置")
 --------------------------------------------------------------------
     local tab3Xml=string.format([[
         <label style="font:13px;color:rgba(0,0,255,255)" text="起始位置 " />
@@ -135,16 +157,24 @@ function initUIXml()
     ---------------------------------------------------------------
 
     local tab4Xml=string.format([[
-        <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节状态" on-change="on_check_readstatus" id="900" checked="false" />
-        <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节位置" on-change="on_check_readstatus" id="901" checked="false" />
-        <label style="font:13px;color:rgba(0,0,255,255)" text="起始位置 " />
-        <edit  id="%d"  />
-        <label style="font:13px;color:rgba(0,0,255,255)" text="时间间隔 " />
-        <edit  id="%d" /> ]],902,903)
-    local tab4=tools:createUiTab(tab4Xml,"关节反馈","form")
+        <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节状态" on-change="on_check_readstatus" id="%d" checked="false" />
+        <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节位置" on-change="on_check_readstatus" id="%d" checked="false" />
+        <tree id="%d" autosize-header="true" on-selection-change="treeSelectionChange">
+            <header>
+                <item>   关节编号   </item>
+                <item>关节位置(弧度)))</item>
+            </header>
+        </tree>
+        <group layout="form" id="9100" visible="false">
+            <label text="Object name" /><label id="9020" />
+            <label text="Object position" /><label id="9030" />
+            <label text="Object orientation" /><label id="9040" />
+        </group>
+        ]],902,903,const.UI.treeJointStatus)
+    local tab4=tools:createUiTab(tab4Xml,"关节反馈")
     ---------------------------------------------------------------
 
-    return tools:createUiFromTabs({tab1,tab2,tab3,tab4})
+    return tools:createUiFromTabs({tab1,tab2,tab3,tab4},{"RDS智能分拣系统","400,600","290,90"})
 
 end
 
@@ -152,13 +182,23 @@ end
 ---############## UI 函数 ###############-
 function onComboselChanged(ui,id,index)
     comboSel=index
-    simUI.setEnabled(ui,const.UI.editPath,comboSel==1)
-    simUI.setEnabled(ui,const.UI.buttonPath,comboSel==1)
+    simUI.setWidgetVisibility(ui,8800,comboSel==1)
+    -- simUI.setEnabled(ui,const.UI.editPath,comboSel==1)
+    -- simUI.setEnabled(ui,const.UI.buttonPath,comboSel==1)
 end
 
 
 
-
+function treeSelectionChange(ui,id,itemid)
+    
+--     simUI.setWidgetVisibility(ui,9100,true)
+--     local h=itemid-2
+--     local p=sim.getObjectPosition(h,-1)
+--     local o=sim.getObjectOrientation(h,-1)
+--     simUI.setLabelText(ui,9020,sim.getObjectName(h))
+--     simUI.setLabelText(ui,9030,string.format('x: %f  y: %f  z: %f', p[1], p[2], p[3]))
+--     simUI.setLabelText(ui,9040,string.format('a: %f  b: %f  g: %f', o[1], o[2], o[3]))
+end
 
 function on_check_readstatus(ui,id,newVal)
     -- READ_ADDR_BACKUP=READ_ADDR_BACKUP or ADS.readAddr
@@ -170,6 +210,7 @@ function on_check_readstatus(ui,id,newVal)
 end
 
 function on_openfile_click(ui,id)
+    
     local f=sim.fileDialog(sim.filedlg_type_load,'打开文件','','','路径文件','txt')
     if f then
         simUI.setEditValue(ui,const.UI.editPath,f,true)
@@ -210,15 +251,13 @@ function on_ads_init_click(ui,id)
         readAddr=simUI.getEditValue(ui,const.UI.editReadAddr)
         remoteID=tools:parseADSNetID(remoteID) --解析为number table
         localID=tools:parseADSNetID(localID) --解析为number table
-        print(readAddr,writeAddr)
         adsHasInit=simADS.create(remoteID,remoteIP,localID)
-        print(adsHasInit)
-        -- if adsHasInit then
-        --     simADS.read(readAddr,0,simADS_handle_open)    --open read Handle
-        -- end
-        -- if adsHasInit then
-        --     simADS.write(writeAddr,{},simADS_handle_open) --open write handle 
-        -- end
+        if adsHasInit then
+            simADS.read(readAddr,0,simADS_handle_open)    --open read Handle
+        end
+        if adsHasInit then
+            simADS.write(writeAddr,{},simADS_handle_open) --open write handle 
+        end
 end
 function on_traj_destroy_click(ui,id)
     print("关闭ADS连接")
@@ -233,6 +272,7 @@ end
 
 
 function on_traj_start_click(ui,id)
+
     print("发送命令:执行运动")
     local msgTable=tools:packTrajData(const.COM.TRAJ_CMD_START)
     local msg=sim.packTable(msgTable)
@@ -252,6 +292,16 @@ function on_traj_stop_click(ui,id)
     local msg=sim.packTable(msgTable)
     simB0.publish(topicPubTrajCmd,msg)
 end
+
+
+function on_sub_robostates(packedData)
+    local data=sim.unpackTable(packedData)
+    -- print(tools:stringFormatRobotStatus(data))
+    for i=1,7 do
+        simUI.updateTreeItemText(tools.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""..data.position[i]})
+    end
+
+end
 ---@@@@@@@@@@@ UI 函数 @@@@@@@@@@@--
 
 
@@ -267,10 +317,15 @@ function sysCall_threadmain()
     nodeUI=simB0.create("uiNode")
     topicPubPlanCmd=simB0.createPublisher(nodeUI,const.TOPICS.PLANCMD)
     topicPubTrajCmd=simB0.createPublisher(nodeUI,const.TOPICS.TRAJCMD)
+    topicSubRobostates=simB0.createSubscriber(nodeUI,const.TOPICS.ROBOSTATES,'on_sub_robostates')
     simB0.init(nodeUI)
-
-
+    on_ads_init_click(tools.ui)
+    
     while sim.getSimulationState()~=sim.simulation_advancing_abouttostop do
+        if nodeUI then
+            -- simB0.spinOnce(nodeUI)
+            pcall(simB0.spinOnce,nodeUI)
+        end
         sim.switchThread() -- resume in next simulation step
     end
 end
@@ -278,6 +333,7 @@ end
 
 --停止
 function sysCall_cleanup()
+    on_traj_destroy_click()
     if nodeUI then
         simB0.cleanup(nodeUI)
         if topicPubPlanCmd then
@@ -286,6 +342,10 @@ function sysCall_cleanup()
         if topicPubTrajCmd then
             simB0.destroyPublisher(topicPubTrajCmd)
         end
+        if topicSubRobostates then
+            simB0.destroySubscriber(topicSubRobostates)
+        end
+        
         simB0.destroy(nodeUI)
     end
     tools:destroyUi(true)
