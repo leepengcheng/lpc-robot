@@ -7,20 +7,24 @@ local const=require("const")
 
 ---###############自定义函数###############
 --加载并保存数据
-function loadConfig(self) 
-    --init
+function loadUiConfig(self,isDefault) 
+    print("加载参数设置")
+    isDefault=isDefault or false
     simUI.insertComboboxItem(self.ui,const.UI.comboSel,0,"自动")
     simUI.insertComboboxItem(self.ui,const.UI.comboSel,1,"手动")
     for i=1,7 do
         simUI.addTreeItem(self.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""})
     end
     --populate data
-    local data=self:readInfo(const.SIGNAL.UI_PARAM)
+    local data={}
+    if not isDefault then
+        data=self:readInfo(const.SIGNAL.UI_PARAM)
+    end
     simUI.setEditValue(self.ui,const.UI.editPath,data.editPath or "")
     simUI.setEditValue(self.ui,const.UI.editTarget,data.editTarget or "")
     simUI.setEditValue(self.ui,const.UI.editIndex,data.editIndex or "0")
     simUI.setEditValue(self.ui,const.UI.editStep,data.editStep or "1")
-    simUI.setEditValue(self.ui,const.UI.remoteID,data.remoteID or "162.168.6.90.1.1")
+    simUI.setEditValue(self.ui,const.UI.remoteID,data.remoteID or "192.168.6.90.1.1")
     simUI.setEditValue(self.ui,const.UI.remoteIP,data.remoteIP or "127.0.0.1")
     simUI.setEditValue(self.ui,const.UI.localID,data.localID or "192.168.6.85.1.1")
     simUI.setEditValue(self.ui,const.UI.editWriteAddr,data.editWriteAddr or  "MAIN.traj_path")
@@ -33,7 +37,8 @@ function loadConfig(self)
 end
 
 --保存数据到对象
-function saveConfig(self)
+function saveUiConfig(self)
+    print("保存参数设置")
     local data={}
     data.comboSel= comboSel or 0
     data.editTarget=simUI.getEditValue(self.ui,const.UI.editTarget)
@@ -58,24 +63,26 @@ function parsePathFileContent(ui)
     --自主规划路径不需要验证
     local data={}
     if comboSel==0 then
-        return data
+        return data,nil
     end
     local pathStr=simUI.getEditValue(ui,const.UI.editPath)
     if not isFileExist(pathStr) then
         print("请输入正确的文件路径")
-        return nil
+        return nil,nil
     else
         f=io.open(pathStr,"r")
         local dataList=string.split(f:read(),"[^%s]+")
         f:close()
         if #dataList~=8 then
             print("错误:轨迹文件每行包含7个轴的数据并用空格分开")
-            return nil
+            return nil,nil
         end
     end
     --读入并解析数据点
     local n=1
+    local lineNum=0
     for line in io.lines(pathStr) do
+        lineNum=lineNum+1
         local dataList=string.split(line,"[^%s]+")
         for i=1,7 do
             -- table.insert(data,tonumber(dataList[i]))
@@ -83,7 +90,7 @@ function parsePathFileContent(ui)
             n=n+1
         end
     end
-    return data
+    return data,lineNum
 end
 
 --检查文件是否存在
@@ -105,7 +112,7 @@ function initUIXml()
             <label style="font:13px;color:rgba(0,0,255,255)" text="请选择路径文件(关节数据用空格区分)"/><br/>
             <edit  id="%d"  />
             <button id="%d" text="选择" on-click="on_openfile_click"/>
-            <button  text="选择" on-click="on_openfile_click"/>
+            <button  text="导入" on-click="on_importpath_click"/>
         </group>
         <edit  id="%d" />
         <button text="路径规划" on-click="on_plan_click"/>
@@ -141,10 +148,13 @@ function initUIXml()
         <label style="font:13px;color:rgba(0,0,255,255)" text="数据写入地址" />
         <edit  id="%d"  />
     </group>
-    <group layout="vbox">
+    <group layout="grid">
         <button text="打开ADS连接" on-click="on_ads_init_click"/>
-        <button text="关闭ADS连接" on-click="on_traj_destroy_click"/>
-    </group>]],const.UI.remoteID,const.UI.remoteIP,const.UI.localID,const.UI.editReadAddr,const.UI.editWriteAddr)
+        <button text="关闭ADS连接" on-click="on_ads_destroy_click"/><br/>
+    </group>
+    <button text="加载默认设置" on-click="on_load_config_click"/>
+    <button text="保存当前设置" on-click="on_save_config_click"/>
+    ]],const.UI.remoteID,const.UI.remoteIP,const.UI.localID,const.UI.editReadAddr,const.UI.editWriteAddr)
     
     local tab2=tools:createUiTab(tab2Xml,"ADS设置")
 --------------------------------------------------------------------
@@ -188,6 +198,13 @@ function onComboselChanged(ui,id,index)
 end
 
 
+function on_save_config_click(ui,id)
+    tools:saveUiConfig()
+end
+
+function on_load_config_click(ui,id)
+    tools:loadUiConfig(true)
+end
 
 function treeSelectionChange(ui,id,itemid)
     
@@ -219,11 +236,18 @@ function on_openfile_click(ui,id)
     end
 end
 
+function on_importpath_click(ui,id)
+    local path,num=parsePathFileContent(ui)
+    if path then
+        simUI.addTreeItem(ui,const.UI.treePathStatus,const.UI.treePathStatus+1,{""..1,""..num,"",""})
+        print("count"..simUI.getColumnCount(ui,const.UI.treePathStatus))
+    end
+end
+
 
 
 function on_plan_click(ui,id)
     local objName=simUI.getEditValue(ui,const.UI.editTarget)
-    local posIndex=1
     local msgTable={objName,"new",4}
     local msg=sim.packTable(msgTable)
     simB0.publish(topicPubPlanCmd,msg)
@@ -232,9 +256,9 @@ end
 function on_traj_new_click(ui,id)
     local index=math.ceil(tonumber(simUI.getEditValue(ui,const.UI.editIndex)))
     local step=math.ceil(tonumber(simUI.getEditValue(ui,const.UI.editStep)))
-    local path=parsePathFileContent(ui)
+    local path,num=parsePathFileContent(ui)
     if  path then
-        print(string.format("发送命令:新的路径,路径点数目: %s",#path))
+        print(string.format("发送命令:新的路径,路径点数目: %s",num))
         local msgTable=tools:packTrajData(const.COM.TRAJ_CMD_NEW,path,index,step)
         local msg=sim.packTable(msgTable)
         simB0.publish(topicPubTrajCmd,msg)
@@ -259,7 +283,8 @@ function on_ads_init_click(ui,id)
             simADS.write(writeAddr,{},simADS_handle_open) --open write handle 
         end
 end
-function on_traj_destroy_click(ui,id)
+
+function on_ads_destroy_click(ui,id)
     print("关闭ADS连接")
     if adsHasInit then
         simADS.write(writeAddr,{},simADS_handle_close)  --close write Handle
@@ -310,7 +335,7 @@ end
 function sysCall_threadmain()
     local handle=sim.getObjectAssociatedWithScript(sim.handle_self)
     local xml=initUIXml()
-    tools:createUi(xml,handle,loadConfig,saveConfig)
+    tools:createUi(xml,handle,loadUiConfig,saveUiConfig)
     comboSel=0
     --#####BlueZero##################
     tools:initResolverB0()
@@ -319,7 +344,7 @@ function sysCall_threadmain()
     topicPubTrajCmd=simB0.createPublisher(nodeUI,const.TOPICS.TRAJCMD)
     topicSubRobostates=simB0.createSubscriber(nodeUI,const.TOPICS.ROBOSTATES,'on_sub_robostates')
     simB0.init(nodeUI)
-    on_ads_init_click(tools.ui)
+    -- on_ads_init_click(tools.ui) --初始化ads链接
     
     while sim.getSimulationState()~=sim.simulation_advancing_abouttostop do
         if nodeUI then
@@ -333,7 +358,7 @@ end
 
 --停止
 function sysCall_cleanup()
-    on_traj_destroy_click()
+    -- on_ads_destroy_click(tools.ui)
     if nodeUI then
         simB0.cleanup(nodeUI)
         if topicPubPlanCmd then
@@ -345,7 +370,6 @@ function sysCall_cleanup()
         if topicSubRobostates then
             simB0.destroySubscriber(topicSubRobostates)
         end
-        
         simB0.destroy(nodeUI)
     end
     tools:destroyUi(true)

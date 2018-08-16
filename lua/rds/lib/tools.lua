@@ -455,4 +455,16 @@ tools.stringFormatRobotStatus=function(self,status)
     return s
 end
 
+
+-- tools:initADS=function(self,remoteID,remoteIP,localID,readAddr,writeAddr)
+--     local adsHasInit=simADS.create(remoteID,remoteIP,localID)
+--     if adsHasInit then
+--         simADS.read(readAddr,0,simADS_handle_open)    --open read Handle
+--     end
+--     if adsHasInit then
+--         simADS.write(writeAddr,{},simADS_handle_open) --open write handle 
+--     end
+--     return adsHasInit
+-- end
+
 return tools

@@ -16,7 +16,7 @@ end
 
 
 function sysCall_init()
-    isReadStatus=true
+    isReadStatus=false
     uploadNode=simB0.create("uploadNode")
     --Publc_Topic发送传感器数据
     topicPubRobostates=simB0.createPublisher(uploadNode,const.TOPICS.ROBOSTATES)

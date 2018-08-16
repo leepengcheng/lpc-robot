@@ -18,6 +18,7 @@ function on_sub_plancmd(packedData)
         print("目标对象不存在")
         return
     end
+    local config=RDS:getConfig()
     local path1=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.1},nil,nil,"IK")
 
     local path2=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.03},nil,const.action.close,"IK")
@@ -26,8 +27,8 @@ function on_sub_plancmd(packedData)
 
     local path=TOOLS:tableConcat(path1,path2,path3)
 
-    TOOLS:visualizePath(path,true)
-    
+    TOOLS:visualizePath(path,false)
+    RDS:setConfig(config)
 
     sim.wait(2.0)
 end
