@@ -24,18 +24,30 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 
+#HALCONROOT="C:/Programs/Halcon"
+#REALSENSEROOT="C:/Program Files (x86)/Intel RealSense SDK 2.0"
 #defines
 win32:DEFINES += WIN32
+
+#*-msvc* {
+#    QMAKE_CXXFLAGS += -O2
+#    QMAKE_CXXFLAGS += -W3
+#}
+
 
 #includes
 INCLUDEPATH   += "$$(HALCONROOT)/include"
 INCLUDEPATH   += "$$(HALCONROOT)/include/halconcpp"
-
+INCLUDEPATH   += "$$(REALSENSEROOT)/include"
+INCLUDEPATH   += "$$(REALSENSEROOT)/samples"
 #libs
-QMAKE_LIBDIR  += "$$(HALCONROOT)/lib/$$(HALCONARCH)"
-unix:LIBS     += -lhalconcpp -lhalcon -lXext -lX11 -ldl -lpthread
-win32:LIBS    += "$$(HALCONROOT)/lib/$$(HALCONARCH)/halconcpp.lib" \
-               "$$(HALCONROOT)/lib/$$(HALCONARCH)/halcon.lib"
+QMAKE_LIBDIR  += "$$(HALCONROOT)/lib/$$(HALCONARCH)" \
+                  "$$(REALSENSEROOT)/lib/x64"
+
+LIBS    += "$$(HALCONROOT)/lib/x64-win64/halconcpp.lib" \
+           "$$(HALCONROOT)/lib/x64-win64/halcon.lib" \
+           "$$(REALSENSEROOT)/lib/x64/realsense2.lib"
+
 
 SOURCES += \
         main.cpp \

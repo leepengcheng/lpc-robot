@@ -12,6 +12,11 @@
 #include "camsetting.h"
 #include "camcalibration.h"
 
+//realsense
+#include <iostream>
+#include <librealsense2/rs.hpp>
+//using namespace rs2;
+
 //原子锁
 std::atomic<bool> isgrab(false);
 std::atomic<bool> isprocess(false);
