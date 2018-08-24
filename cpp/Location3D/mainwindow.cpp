@@ -1,35 +1,151 @@
-#define NO_EXPORT_APP_MAIN
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "imgprocess.hpp"
-#include <list>
-#include <future>
+//#include "imgprocess.hpp"
+#include <chrono>
 #include <thread>
-#include <atomic>
-#include <mutex>
-#include <memory>
-#include <condition_variable>
 #include "camsetting.h"
 #include "camcalibration.h"
 
-//realsense
-#include <iostream>
-#include <librealsense2/rs.hpp>
-//using namespace rs2;
 
-//原子锁
-std::atomic<bool> isgrab(false);
-std::atomic<bool> isprocess(false);
-std::atomic<bool> isdisplay(false);
 
-//条件变量
-std::condition_variable cv_process;
-std::condition_variable cv_display;
+//void MainWindow::display_match_pose (HTuple hv_ShapeModel3DID, HTuple hv_Pose, HTuple hv_WindowHandle)
+//{
+//    // Local control variables
+//    HTuple  hv_DegreeSign, hv_ReferencePoint, hv_CamParam;
+//    HTuple  hv_HomMat3D, hv_X, hv_Y, hv_Z, hv_Row, hv_Column;
 
-//图片队列/处理后的图片的互斥体
-std::mutex  imgQueueMutex;
-std::mutex  resultDataMutex;
+//    //Construct the degree sign
+//    TupleChr(0xb0, &hv_DegreeSign);
+//    GetShapeModel3dParams(hv_ShapeModel3DID, "reference_point", &hv_ReferencePoint);
+//    GetShapeModel3dParams(hv_ShapeModel3DID, "cam_param", &hv_CamParam);
+//    //
+//    //Project the reference point
+//    PoseToHomMat3d(hv_Pose, &hv_HomMat3D);
+//    AffineTransPoint3d(hv_HomMat3D, HTuple(hv_ReferencePoint[0]), HTuple(hv_ReferencePoint[1]),
+//            HTuple(hv_ReferencePoint[2]), &hv_X, &hv_Y, &hv_Z);
+//    Project3dPoint(hv_X, hv_Y, hv_Z, hv_CamParam, &hv_Row, &hv_Column);
+//    //
+//    //Display the pose at the projected reference point
+//    SetTposition(hv_WindowHandle, hv_Row, hv_Column-10);
+//    WriteString(hv_WindowHandle, "Pose:");
+//    SetTposition(hv_WindowHandle, hv_Row+15, hv_Column);
+//    WriteString(hv_WindowHandle, ("X: "+((1000*HTuple(hv_Pose[0])).TupleString("4.1f")))+" mm");
+//    SetTposition(hv_WindowHandle, hv_Row+30, hv_Column);
+//    WriteString(hv_WindowHandle, ("Y: "+((1000*HTuple(hv_Pose[1])).TupleString("4.1f")))+" mm");
+//    SetTposition(hv_WindowHandle, hv_Row+45, hv_Column);
+//    WriteString(hv_WindowHandle, ("Z: "+((1000*HTuple(hv_Pose[2])).TupleString("4.1f")))+" mm");
+//    SetTposition(hv_WindowHandle, hv_Row+60, hv_Column);
+//    WriteString(hv_WindowHandle, ("Alpha: "+(HTuple(hv_Pose[3]).TupleString("4.1f")))+hv_DegreeSign);
+//    SetTposition(hv_WindowHandle, hv_Row+75, hv_Column);
+//    WriteString(hv_WindowHandle, ("Beta: "+(HTuple(hv_Pose[4]).TupleString("4.1f")))+hv_DegreeSign);
+//    SetTposition(hv_WindowHandle, hv_Row+90, hv_Column);
+//    WriteString(hv_WindowHandle, ("Gamma: "+(HTuple(hv_Pose[5]).TupleString("4.1f")))+hv_DegreeSign);
+//    return;
+//}
 
+void MainWindow::disp_3d_coord_system ( HTuple &camParam, HTuple &pose, HTuple axesLength)
+{
+
+    // Local iconic variables
+    HObject  ho_Arrows;
+
+    // Local control variables
+    HTuple  hv_TransWorld2Cam, hv_OrigCamX, hv_OrigCamY;
+    HTuple  hv_OrigCamZ, hv_Row0, hv_Column0, hv_X, hv_Y, hv_Z;
+    HTuple  hv_RowAxX, hv_ColumnAxX, hv_RowAxY, hv_ColumnAxY;
+    HTuple  hv_RowAxZ, hv_ColumnAxZ, hv_Distance, hv_HeadLength;
+
+    if (0 != ((pose.TupleLength())!=7))
+    {
+        return;
+    }
+    if (0 != (HTuple(HTuple(pose[2])==0.0).TupleAnd(HTuple(camParam[0])!=0)))
+    {
+        return;
+    }
+    //Convert to pose to a transformation matrix
+    PoseToHomMat3d(pose, &hv_TransWorld2Cam);
+    //Project the world origin into the image
+    AffineTransPoint3d(hv_TransWorld2Cam, 0, 0, 0, &hv_OrigCamX, &hv_OrigCamY, &hv_OrigCamZ);
+    Project3dPoint(hv_OrigCamX, hv_OrigCamY, hv_OrigCamZ, camParam, &hv_Row0, &hv_Column0);
+    //Project the coordinate axes into the image
+    AffineTransPoint3d(hv_TransWorld2Cam, axesLength, 0, 0, &hv_X, &hv_Y, &hv_Z);
+    Project3dPoint(hv_X, hv_Y, hv_Z, camParam, &hv_RowAxX, &hv_ColumnAxX);
+    AffineTransPoint3d(hv_TransWorld2Cam, 0, axesLength, 0, &hv_X, &hv_Y, &hv_Z);
+    Project3dPoint(hv_X, hv_Y, hv_Z, camParam, &hv_RowAxY, &hv_ColumnAxY);
+    AffineTransPoint3d(hv_TransWorld2Cam, 0, 0, axesLength, &hv_X, &hv_Y, &hv_Z);
+    Project3dPoint(hv_X, hv_Y, hv_Z, camParam, &hv_RowAxZ, &hv_ColumnAxZ);
+    //
+    //Generate an XLD contour for each axis
+    DistancePp((hv_Row0.TupleConcat(hv_Row0)).TupleConcat(hv_Row0), (hv_Column0.TupleConcat(hv_Column0)).TupleConcat(hv_Column0),
+               (hv_RowAxX.TupleConcat(hv_RowAxY)).TupleConcat(hv_RowAxZ), (hv_ColumnAxX.TupleConcat(hv_ColumnAxY)).TupleConcat(hv_ColumnAxZ),
+               &hv_Distance);
+    hv_HeadLength = ((((hv_Distance.TupleMax())/12.0).TupleConcat(5.0)).TupleMax()).TupleInt();
+    gen_arrow_contour_xld(&ho_Arrows, (hv_Row0.TupleConcat(hv_Row0)).TupleConcat(hv_Row0),
+                          (hv_Column0.TupleConcat(hv_Column0)).TupleConcat(hv_Column0), (hv_RowAxX.TupleConcat(hv_RowAxY)).TupleConcat(hv_RowAxZ),
+                          (hv_ColumnAxX.TupleConcat(hv_ColumnAxY)).TupleConcat(hv_ColumnAxZ), hv_HeadLength,
+                          hv_HeadLength);
+    //
+    //Display coordinate system
+    hwindow->DispXld(ho_Arrows);
+}
+
+void MainWindow::gen_arrow_contour_xld (HObject *ho_Arrow, HTuple row1, HTuple column1,
+                                        HTuple row2, HTuple column2, HTuple headLength, HTuple headWidth)
+{
+
+    // Local iconic variables
+    HObject  tempArrow;
+
+    // Local control variables
+    HTuple  hv_Length, zeroLengthIndex, hv_DR;
+    HTuple  hv_DC, halfHeadWidth, rowP1, colP1, rowP2;
+    HTuple  colP2, index;
+
+
+    GenEmptyObj(&(*ho_Arrow));
+    //
+    //Calculate the arrow length
+    DistancePp(row1, column1, row2, column2, &hv_Length);
+
+    zeroLengthIndex = hv_Length.TupleFind(0);
+    if (0 != (zeroLengthIndex!=-1))
+    {
+        hv_Length[zeroLengthIndex] = -1;
+    }
+    //
+    //Calculate auxiliary variables.
+    hv_DR = (1.0*(row2-row1))/hv_Length;
+    hv_DC = (1.0*(column2-column1))/hv_Length;
+    halfHeadWidth = headWidth/2.0;
+    //
+    //Calculate end points of the arrow head.
+    rowP1 = (row1+((hv_Length-headLength)*hv_DR))+(halfHeadWidth*hv_DC);
+    colP1 = (column1+((hv_Length-headLength)*hv_DC))-(halfHeadWidth*hv_DR);
+    rowP2 = (row1+((hv_Length-headLength)*hv_DR))-(halfHeadWidth*hv_DC);
+    colP2 = (column1+((hv_Length-headLength)*hv_DC))+(halfHeadWidth*hv_DR);
+    //
+    //Finally create output XLD contour for each input point pair
+    {
+        HTuple end_val45 = (hv_Length.TupleLength())-1;
+        HTuple step_val45 = 1;
+        for (index=0; index.Continue(end_val45, step_val45); index += step_val45)
+        {
+            if (0 != (HTuple(hv_Length[index])==-1))
+            {
+                //Create_ single points for arrows with identical start and end point
+                GenContourPolygonXld(&tempArrow, HTuple(row1[index]), HTuple(column1[index]));
+            }
+            else
+            {
+                //Create arrow contour
+                GenContourPolygonXld(&tempArrow, ((((HTuple(row1[index]).TupleConcat(HTuple(row2[index]))).TupleConcat(HTuple(rowP1[index]))).TupleConcat(HTuple(row2[index]))).TupleConcat(HTuple(rowP2[index]))).TupleConcat(HTuple(row2[index])),
+                                     ((((HTuple(column1[index]).TupleConcat(HTuple(column2[index]))).TupleConcat(HTuple(colP1[index]))).TupleConcat(HTuple(column2[index]))).TupleConcat(HTuple(colP2[index]))).TupleConcat(HTuple(column2[index])));
+            }
+            ConcatObj((*ho_Arrow), tempArrow, &(*ho_Arrow));
+        }
+    }
+}
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -37,54 +153,37 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
     this->initialize();
 
-    connect(ui->btn_opendevice,&QPushButton::clicked,[=](){
-        isDeviceOpen=this->openDevice("DirectShow");
-        ui->btn_opendevice->setEnabled(!isDeviceOpen);
-        ui->btn_startgrab->setEnabled(isDeviceOpen);
-    });
+    //打开设备
+    connect(ui->btn_opendevice,SIGNAL(clicked()),SLOT(openDevice()));
 
-    connect(ui->btn_startgrab,&QPushButton::clicked,[=](){
+    //开始采集
+    connect(ui->btn_startgrab,SIGNAL(clicked()),SLOT(startGrab()));
 
-        //使能按钮
-        ui->btn_startgrab->setEnabled(false);
-        ui->btn_stopgrab->setEnabled(true);
-
-        //清空队列
-        imgQueue.swap(std::queue<HImage>());
-
-        //图像采集线程
-        this->grabImage();
-
-        //图像处理线程
-        this->processImage();
-
-        //图像显示线程
-        this->displayImage();
-
-    });
-
-    connect(ui->btn_stopgrab,&QPushButton::clicked,[=](){
-        this->stopGrabImage();
-    });
+    //停止采集
+    connect(ui->btn_stopgrab,SIGNAL(clicked()),SLOT(stopGrab()));
 
     //单张图拍摄
-    connect(ui->btn_snapshot,&QPushButton::clicked,[=](){
-        this->singleShot();
-    });
+    connect(ui->btn_snapshot,SIGNAL(clicked()),SLOT(singleShot()));
 }
 
 
 MainWindow::~MainWindow()
 {
 
-    isgrab.store(false);
-    isprocess.store(false);
-    isdisplay.store(false);
-    CloseAllFramegrabbers();
+    killTimer(Timer);
+    CloseFramegrabber(fgHandle);
+    if (modelID != -1)
+    {
+        ClearShapeModel3d(modelID);
+    }
+    //    CloseAllFramegrabbers();
     delete hwindow;
     delete ui;
+
+
 }
 
 
@@ -96,11 +195,9 @@ void MainWindow::initialize()
     SetCheck("~father");
     hwindow=new HWindow(0,0,ui->hwindow->width(),ui->hwindow->height(),(Hlong)ui->hwindow->winId(), "visible", "");
     hwindow->SetColor("green");
-    hwindow->SetLineWidth(20);
+    hwindow->SetLineWidth(2);
     SetCheck("father");
 
-    //处理的图片数目
-    ui->lcdSuccessNum->display(processCout);
 
 
     //打开相机处理界面
@@ -136,146 +233,189 @@ void MainWindow::initialize()
 
 
 
-//打开摄像头
-bool MainWindow::openDevice(const char* deviceType)
+//打开摄像头"DirectShow"
+void MainWindow::openDevice()
 {
+    isDeviceOpen=false;
     try
     {
-        //close all framegrabbers
         CloseAllFramegrabbers();
-        //get the device info and open
-        HalconCpp::HTuple device_info,device_list;
-        InfoFramegrabber(deviceType, "device", &device_info, &device_list);
-        OpenFramegrabber(deviceType, 1, 1, 0, 0, 0, 0, "default", 8, "rgb", -1, "false",
-                         "default", HTuple(device_list[0]), 0, -1, &fgHandle);
-        InfoFramegrabber(deviceType, "parameters", &device_info, &device_list);
-        for(int i=0;i<device_list.Length();++i)
-        {
-            std::cout<<device_list[i].S().Text()<<std::endl;
-        }
+        OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", -1, "default", -1,
+                         "false", "default", "default", -1, -1, &fgHandle);
         GrabImageStart(fgHandle, -1);
-
     }
     catch (HException &except)
     {
-        //        this->statusBar()->showMessage(except.ErrorMessage().Text(),3000);
         this->statusBar()->showMessage(except.ProcName().Text(),3000);
-
-        return false;
+        return;
     }
 
-    //notify message
+    isDeviceOpen=true;
+    GrabImage(&Image,fgHandle);
+    GetImageSize(Image,&Width,&Height);
+    hwindow->SetPart(0,0,Height-1,Width-1);
+    //设置尺寸
+    hwindow->SetWindowExtents(0,0,ui->hwindow->width(),ui->hwindow->height());
+
+    ui->btn_opendevice->setEnabled(!isDeviceOpen);
+    ui->btn_startgrab->setEnabled(isDeviceOpen);
+    ui->btn_snapshot->setEnabled(isDeviceOpen);
+    ui->btn_stopgrab->setEnabled(!isDeviceOpen);
+
     this->statusBar()->showMessage("device is opening",3000);
-    return true;
 }
 
 
 
-void MainWindow::grabImage()
+void MainWindow::startGrab()
 {
-    //if grab is running,return
-    if(isgrab.load()){return;}
-    isgrab.store(true);
-    //start grab image thread
-    std::async(std::launch::async,[&]{
-        HImage image;
-        while (isgrab.load())
-        {
-            GrabImageAsync(&image, fgHandle, -1);
-            {
+    if(isDeviceOpen)
+    {
+        Timer = startTimer(30);
+        ui->btn_startgrab->setEnabled(false);
+        ui->btn_stopgrab->setEnabled(true);
+    }
+    else
+    {
+        this->statusBar()->showMessage("Open Device First",3000);
 
-                std::lock_guard<std::mutex> lg(imgQueueMutex);
-                if(imgQueue.size()<MAX_IMGBUFFER)
-                {
-                    imgQueue.push(image);
-                    std::cout<<"grabbing"<<std::endl;
-                }
-            }
-            cv_process.notify_one();
-        }
-    });
+    }
+
 }
 
 
 //处理图片
 void MainWindow::processImage()
 {
-
-    if(isprocess.load()){return;}
-    isprocess.store(true);
-    //start image process thread
-    std::async(std::launch::async,[&]{
-        HImage image;
-        while(isprocess.load())
-        {
-            //从队列中取出图片并进行处理
-            {
-                std::unique_lock<std::mutex> ul(imgQueueMutex);
-                cv_process.wait(ul,[&]{return !imgQueue.empty();});
-                std::cout<<"procesing"<<std::endl;
-                image=imgQueue.front();
-                imgQueue.pop();
-            }
-            //将图片赋值给全局结构体
-            {
-                std::lock_guard<std::mutex> lg(resultDataMutex);
-                resultData.result_img=image;
-            }
-            //通知给结果显示线程
-            cv_display.notify_one();
-        }
-
-    });
+    GrabImage(&Image,fgHandle);
+    hwindow->DispObj(Image);
 }
 
 void MainWindow::singleShot()
 {
-
-    std::async(std::launch::async,[&]{
-        HImage image;
-        GrabImageAsync(&image, fgHandle, -1);
-        hwindow->DispObj(image);
-    });
+    //    this->processImage();
+    this->action();
 }
 
-void MainWindow::stopGrabImage()
+void MainWindow::stopGrab()
 {
-    isgrab.store(false);
-    isprocess.store(false);
-    isdisplay.store(false);
+    //使能按钮
+    killTimer(Timer);
     ui->btn_startgrab->setEnabled(true);
     ui->btn_stopgrab->setEnabled(false);
 }
 
-void MainWindow::displayImage()
-{
-    if(isdisplay.load()){return;}
-    isdisplay.store(true);
-    //start display image thread
-    std::async(std::launch::async,[&]{
-        Hlong Second,Minute, Hour, Day, YDay, Month, Year;
-        auto t1=std::chrono::steady_clock::now();
-        auto t2=t1;
-        while(isdisplay.load())
-        {
-            {
-                std::unique_lock<std::mutex> ul(resultDataMutex);
-                cv_display.wait(ul); //添加[]{return true;}会报错?
-                resultData.result_img.GetImageTime(&Second,&Minute, &Hour, &Day, &YDay, &Month, &Year);
-                //                std::cout<<"Hour:"<<Hour<<" Minute:"<<Minute<<" Second: "<<Second<<std::endl;
-                hwindow->DispObj(resultData.result_img);
-                ui->lcdSuccessNum->display(++processCout);
-                if(processCout%20==0)
-                {
-                    t2=std::chrono::steady_clock::now();
-                    auto duration=std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1);
-                    t1=t2;
-                    std::cout<<QString(">>>Framte Rage:%1").arg(20000/duration.count()).toStdString().c_str()<<std::endl;
-                    //                hwindow->DispCross(50,50,100,15);
-                }
 
-            }
-        }
-    });
+void MainWindow::timerEvent(QTimerEvent *event)
+{
+    //    this->processImage();
 
 }
+
+void MainWindow:: action()
+{
+
+
+    HObject  inImage, modelContours;
+
+    // Local control variables
+    HTuple  camParam, imgWidth, imgHeight, hv_WindowHandle;
+    HTuple  objModelID;
+    HTuple  dxfStatus, hv_S1, hv_S2, hv_T, hv_Times, numImages;
+    HTuple  hv_I, seconds1, pose, covPose, score;
+    HTuple  seconds2, hv_Time, hv_J, poseTmp;
+
+
+
+    camParam.Clear();
+    camParam[0] = 0.0269462;
+    camParam[1] = -354.842;
+    camParam[2] = 1.27964e-005;
+    camParam[3] = 1.28e-005;
+    camParam[4] = 254.24;
+    camParam[5] = 201.977;
+    camParam[6] = 512;
+    camParam[7] = 384;
+    //
+    imgWidth = ((const HTuple&)camParam)[6];
+    imgHeight = ((const HTuple&)camParam)[7];
+
+    ReadImage(&inImage, "C:/Users/Public/Documents/MVTec/HALCON-12.0/examples/images/tile_spacers/tile_spacers_color_01.png");
+
+
+    try
+    {
+        ReadShapeModel3d("tile_spacer.sm3", &modelID);
+    }
+    catch (HalconCpp::HException)
+    {
+        //从dxf文件创建模板
+        ReadObjectModel3d("C:/Users/Public/Documents/MVTec/HALCON-12.0/examples/3d_models/tile_spacer.dxf", 0.0001, HTuple(), HTuple(), &objModelID,
+                          &dxfStatus);
+        PrepareObjectModel3d(objModelID, "shape_based_matching_3d", "true", HTuple(),HTuple());
+
+        CountSeconds(&hv_S1);
+
+        CreateShapeModel3d(objModelID, camParam, 0, 0, 0, "gba", -(HTuple(60).TupleRad()),
+                           HTuple(60).TupleRad(), -(HTuple(60).TupleRad()), HTuple(60).TupleRad(), 0,
+                           HTuple(360).TupleRad(), 0.26, 0.27, 10, "lowest_model_level", 3, &modelID);
+        CountSeconds(&hv_S2);
+        hv_T = hv_S2-hv_S1;
+
+        ClearObjectModel3d(objModelID);
+
+        try
+        {
+            WriteShapeModel3d(modelID, "tile_spacer.sm3");
+        }
+
+        catch (HalconCpp::HException)
+        {
+            //HDevExpDefaultException.ToHTuple(&hException);
+            this->statusBar()->showMessage("Writing model to disk ... failed!");
+        }
+    }
+
+
+    hv_Times = HTuple();
+    numImages = 12;
+    {
+        HTuple end = numImages;
+        HTuple step = 1;
+        for (hv_I=1; hv_I.Continue(end, step); hv_I += step)
+        {
+            ReadImage(&inImage, "tile_spacers/tile_spacers_color_"+(hv_I.TupleString("02")));
+            hwindow->DispImage(inImage);
+
+            CountSeconds(&seconds1);
+            FindShapeModel3d(inImage, modelID, 0.7, 0.85, 0, ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
+                             ((HTuple(3).Append(0.75)).Append("true")), &pose, &covPose, &score);
+            CountSeconds(&seconds2);
+            hv_Time = seconds2-seconds1;
+            hv_Times = hv_Times.TupleConcat(hv_Time);
+
+            {
+                HTuple end_val93 = (score.TupleLength())-1;
+                HTuple step_val93 = 1;
+                for (hv_J=0; hv_J.Continue(end_val93, step_val93); hv_J += step_val93)
+                {
+                    //显示轮廓
+                    poseTmp = pose.TupleSelectRange(hv_J*7,(hv_J*7)+6);
+                    ProjectShapeModel3d(&modelContours, modelID, camParam, poseTmp,"true", HTuple(30).TupleRad());
+                    hwindow->SetColor("white");
+                    hwindow->DispObj(modelContours);
+
+                    ////显示坐标系
+                    hwindow->SetColored(3);
+                    disp_3d_coord_system(camParam, poseTmp, 0.015);
+
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        }
+    }
+
+}
+
+

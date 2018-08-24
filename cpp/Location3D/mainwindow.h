@@ -3,21 +3,11 @@
 
 #include <QMainWindow>
 #include <HalconCpp.h>
-#include <queue>
 #include <memory>
 
 
 
-
-struct ResultContainer
-{
-    HalconCpp::HImage   result_img;
-    //  HalconCpp::HXLDCont symbol_data;
-    //  HalconCpp::HTuple   time_needed;
-    //  HalconCpp::HTuple   result_handle;
-    //  HalconCpp::HTuple   decoded_data;
-};
-
+using namespace HalconCpp;
 namespace Ui {
 class MainWindow;
 }
@@ -31,32 +21,43 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-    HalconCpp::HTuple   fgHandle;
-    HalconCpp::HWindow*   hwindow;
+    HTuple   fgHandle;
+    HWindow*   hwindow;
+    HObject Image;
 
 private:
     Ui::MainWindow *ui;
     void initialize();
-    bool openDevice(const char* deviceType);
-    void grabImage();
-    void processImage();
-    void singleShot();
-    void stopGrabImage();
-    void displayImage();
-
-
+    void action();
     bool isDeviceOpen=false;
-    const int MAX_IMGBUFFER=3;
-    int processCout=0;
 
-    //共享数据
-    struct   ResultContainer resultData;
-    std::queue<HalconCpp::HImage> imgQueue;
+    // Timer
+    long Timer;
 
     //相机设置界面
     std::shared_ptr<CamSetting> camSetting;
     std::shared_ptr<CamCalibration> camCalibration;
 
+    HTuple  Width, Height;
+    HTuple  modelID;
+
+    //显示
+//    void display_match_pose (HTuple, HTuple, HTuple);
+    void disp_3d_coord_system (HTuple& , HTuple& , HTuple);
+    void gen_arrow_contour_xld (HObject *, HTuple , HTuple , HTuple , HTuple , HTuple , HTuple );
+
+private slots:
+    void openDevice();
+    void startGrab();
+    void processImage();
+    void singleShot();
+    void stopGrab();
+
+
+
+    // QObject interface
+protected:
+    void timerEvent(QTimerEvent *event);
 };
 
 #endif // MAINWINDOW_H

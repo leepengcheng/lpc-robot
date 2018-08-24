@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>上下料布料定位</string>
+   <string>RDS智能分拣</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <widget class="QWidget" name="hwindow" native="true">
@@ -22,102 +22,6 @@
       <width>461</width>
       <height>461</height>
      </rect>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_snapshot">
-    <property name="enabled">
-     <bool>true</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>480</x>
-      <y>190</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>快照</string>
-    </property>
-   </widget>
-   <widget class="QLCDNumber" name="lcdSuccessNum">
-    <property name="geometry">
-     <rect>
-      <x>520</x>
-      <y>230</y>
-      <width>171</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="segmentStyle">
-     <enum>QLCDNumber::Filled</enum>
-    </property>
-    <property name="value" stdset="0">
-     <double>0.000000000000000</double>
-    </property>
-    <property name="intValue" stdset="0">
-     <number>0</number>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="btn_snapshot_2">
-    <property name="enabled">
-     <bool>true</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>600</x>
-      <y>190</y>
-      <width>75</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>清零</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>470</x>
-      <y>240</y>
-      <width>54</width>
-      <height>12</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>总计</string>
-    </property>
-   </widget>
-   <widget class="QLCDNumber" name="lcdSuccessNum_2">
-    <property name="geometry">
-     <rect>
-      <x>520</x>
-      <y>320</y>
-      <width>171</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="segmentStyle">
-     <enum>QLCDNumber::Filled</enum>
-    </property>
-    <property name="value" stdset="0">
-     <double>0.000000000000000</double>
-    </property>
-    <property name="intValue" stdset="0">
-     <number>0</number>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>470</x>
-      <y>340</y>
-      <width>54</width>
-      <height>12</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>褶皱</string>
     </property>
    </widget>
    <widget class="QGroupBox" name="groupBox">
@@ -132,66 +36,54 @@
     <property name="title">
      <string>设备管理</string>
     </property>
-    <widget class="QPushButton" name="btn_opendevice">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>20</y>
-       <width>75</width>
-       <height>23</height>
+       <x>0</x>
+       <y>30</y>
+       <width>231</width>
+       <height>81</height>
       </rect>
      </property>
-     <property name="text">
-      <string>打开设备</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="btn_closedevice">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>130</x>
-       <y>20</y>
-       <width>75</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>关闭设备</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="btn_startgrab">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>20</x>
-       <y>60</y>
-       <width>75</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>开始采集</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="btn_stopgrab">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>130</x>
-       <y>60</y>
-       <width>75</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>停止采集</string>
-     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QPushButton" name="btn_opendevice">
+        <property name="text">
+         <string>打开设备</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QPushButton" name="btn_snapshot">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>快照</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QPushButton" name="btn_startgrab">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>开始采集</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QPushButton" name="btn_stopgrab">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>停止采集</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
   </widget>
@@ -201,7 +93,7 @@
      <x>0</x>
      <y>0</y>
      <width>716</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_system">
