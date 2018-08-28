@@ -29,10 +29,14 @@ function loadUiConfig(self,isDefault)
     simUI.setEditValue(self.ui,const.UI.localID,data.localID or "192.168.6.85.1.1")
     simUI.setEditValue(self.ui,const.UI.editWriteAddr,data.editWriteAddr or  "MAIN.traj_path")
     simUI.setEditValue(self.ui,const.UI.editReadAddr,data.editReadAddr or "MAIN.robo_status")
-    simUI.setComboboxSelectedIndex(self.ui,const.UI.comboSel,data.comboSel or 0,false)
+
+    --选择模式
+    comboSel=data.comboSel or 0
+    simUI.setComboboxSelectedIndex(self.ui,const.UI.comboSel,comboSel)
+    onComboselChanged(self.ui,const.UI.comboSel,comboSel)
 
     --UI position
-    local pos=data.position or {290,90}
+    -- local pos=data.position or {290,90}
     -- simUI.setPosition(self.ui,pos[1],pos[2])
 end
 
@@ -108,14 +112,18 @@ function initUIXml()
     local tab1Xml=string.format([[
 
         <combobox id="%d" on-change="onComboselChanged" />
-        <group layout="grid" id="8800" visible="true">
+        <group layout="grid" id="8000" visible="true">
             <label style="font:13px;color:rgba(0,0,255,255)" text="请选择路径文件(关节数据用空格区分)"/><br/>
             <edit  id="%d"  />
             <button id="%d" text="选择" on-click="on_openfile_click"/>
             <button  text="导入" on-click="on_importpath_click"/>
         </group>
-        <edit  id="%d" />
-        <button text="路径规划" on-click="on_plan_click"/>
+        <group layout="grid" id="8001" visible="true">
+        <label style="font:13px;color:rgba(0,0,255,255)" text="请选择需要抓取的对象名称"/><br/>
+            <edit  id="%d" />
+            <button text="路径规划" on-click="on_plan_click"/>
+            <button text="清除路径" on-click="on_planedpath_clear"/>
+        </group>
         <tree id="%d" autosize-header="true">
             <header>
                 <item>   路径ID</item>
@@ -192,9 +200,8 @@ end
 ---############## UI 函数 ###############-
 function onComboselChanged(ui,id,index)
     comboSel=index
-    simUI.setWidgetVisibility(ui,8800,comboSel==1)
-    -- simUI.setEnabled(ui,const.UI.editPath,comboSel==1)
-    -- simUI.setEnabled(ui,const.UI.buttonPath,comboSel==1)
+    simUI.setWidgetVisibility(ui,const.UI.groupManul,comboSel==1)
+    simUI.setWidgetVisibility(ui,const.UI.groupAuto,comboSel==0)
 end
 
 
@@ -218,12 +225,9 @@ function treeSelectionChange(ui,id,itemid)
 end
 
 function on_check_readstatus(ui,id,newVal)
-    -- READ_ADDR_BACKUP=READ_ADDR_BACKUP or ADS.readAddr
-    -- if newVal==2 then
-    --     ADS.readAddr=READ_ADDR_BACKUP
-    -- else
-    --     ADS.readAddr=nil
-    -- end
+    if newVal>0 then
+        sim.setIntegerSignal("upload",1)
+    end
 end
 
 function on_openfile_click(ui,id)
@@ -238,6 +242,7 @@ end
 
 function on_importpath_click(ui,id)
     local path,num=parsePathFileContent(ui)
+    print(path)
     if path then
         simUI.addTreeItem(ui,const.UI.treePathStatus,const.UI.treePathStatus+1,{""..1,""..num,"",""})
         print("count"..simUI.getColumnCount(ui,const.UI.treePathStatus))
@@ -251,6 +256,11 @@ function on_plan_click(ui,id)
     local msgTable={objName,"new",4}
     local msg=sim.packTable(msgTable)
     simB0.publish(topicPubPlanCmd,msg)
+end
+function on_planedpath_clear(ui,id)
+    -- local data=tools:readInfo(const.PATHNAME,sim.getObjectHandle("path"))
+    
+    
 end
 
 function on_traj_new_click(ui,id)
@@ -321,10 +331,16 @@ end
 
 function on_sub_robostates(packedData)
     local data=sim.unpackTable(packedData)
-    -- print(tools:stringFormatRobotStatus(data))
     for i=1,7 do
         simUI.updateTreeItemText(tools.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""..data.position[i]})
     end
+
+end
+
+function on_sub_planedpath(packedData)
+    local msg=sim.unpackTable(packedData)
+    simUI.addTreeItem(tools.ui,const.UI.treePathStatus,const.UI.treePathStatus+1,{msg.obj,""..#msg.data/7,"",""})
+
 
 end
 ---@@@@@@@@@@@ UI 函数 @@@@@@@@@@@--
@@ -343,6 +359,7 @@ function sysCall_threadmain()
     topicPubPlanCmd=simB0.createPublisher(nodeUI,const.TOPICS.PLANCMD)
     topicPubTrajCmd=simB0.createPublisher(nodeUI,const.TOPICS.TRAJCMD)
     topicSubRobostates=simB0.createSubscriber(nodeUI,const.TOPICS.ROBOSTATES,'on_sub_robostates')
+    topicSubPlanedpath=simB0.createSubscriber(nodeUI,const.TOPICS.PLANEDPATH,'on_sub_planedpath')
     simB0.init(nodeUI)
     -- on_ads_init_click(tools.ui) --初始化ads链接
     
@@ -358,7 +375,7 @@ end
 
 --停止
 function sysCall_cleanup()
-    -- on_ads_destroy_click(tools.ui)
+    -- on_ads_destroy_click(tools.ui) --关闭ADS连接
     if nodeUI then
         simB0.cleanup(nodeUI)
         if topicPubPlanCmd then
@@ -369,6 +386,9 @@ function sysCall_cleanup()
         end
         if topicSubRobostates then
             simB0.destroySubscriber(topicSubRobostates)
+        end        
+        if topicSubPlanedpath then
+            simB0.destroySubscriber(topicSubPlanedpath)
         end
         simB0.destroy(nodeUI)
     end

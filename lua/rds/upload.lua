@@ -23,8 +23,9 @@ function sysCall_init()
     simB0.init(uploadNode)
 end
 
--- function sysCall_actuation()
--- end
+function sysCall_actuation()
+    isReadStatus=sim.getIntegerSignal("upload") --采集数据
+end
 
 function sysCall_sensing()
     if isReadStatus then

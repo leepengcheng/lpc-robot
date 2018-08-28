@@ -2,6 +2,7 @@
 
 local const={}
 
+const.PATHNAME="path_db"
 --机械爪的动作 开|闭|不变
 const.action={
     open=0,
@@ -65,7 +66,8 @@ const.TOPICS={
     ADSCMD="adscmd",  --ADS控制命令,初始化|关闭
     TRAJCMD="trajcmd", --发出开始执行轨迹命令
     PLANCMD="plancmd", --发出开始规划的命令
-    ROBOSTATES="robostates" --采集到的关节数据/机器人状态
+    ROBOSTATES="robostates", --采集到的关节数据/机器人状态
+    PLANEDPATH="planedpath"  --规划出来的轨迹数据
 }
 
 const.UI={
@@ -87,7 +89,9 @@ const.UI={
     editImotionPossible=3005,
     editErrorCode=3006,
     treeJointStatus=4000,
-    treePathStatus=5000
+    treePathStatus=5000,
+    groupManul=8000,
+    groupAuto=8001
 
 
 
