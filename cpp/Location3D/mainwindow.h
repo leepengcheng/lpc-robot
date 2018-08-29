@@ -11,8 +11,14 @@ using namespace HalconCpp;
 namespace Ui {
 class MainWindow;
 }
+
 class CamSetting;
 class CamCalibration;
+namespace b0 {
+class Node;
+class Subscriber;
+class Publisher;
+}
 
 class MainWindow : public QMainWindow
 {
@@ -21,30 +27,38 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
-    HTuple   fgHandle;
-    HWindow*   hwindow;
-    HObject Image;
+
 
 private:
     Ui::MainWindow *ui;
-    void initialize();
+    void initUI();
+    void initBZERO();
     void action();
     bool isDeviceOpen=false;
 
     // Timer
-    long Timer;
+    long timer=0;
 
-    //相机设置界面
+
     std::shared_ptr<CamSetting> camSetting;
     std::shared_ptr<CamCalibration> camCalibration;
 
+    //Halcon Variable
+    HTuple   fgHandle;
+    HWindow*   hwindow;
+    HObject Image;
     HTuple  Width, Height;
     HTuple  modelID;
 
-    //显示
+    //Display function
 //    void display_match_pose (HTuple, HTuple, HTuple);
     void disp_3d_coord_system (HTuple& , HTuple& , HTuple);
     void gen_arrow_contour_xld (HObject *, HTuple , HTuple , HTuple , HTuple , HTuple , HTuple );
+
+    //BlueZero Node
+    b0::Node* node=NULL;
+    b0::Subscriber* sub_node=NULL;
+    b0::Publisher*  pub_node=NULL;
 
 private slots:
     void openDevice();
@@ -53,11 +67,11 @@ private slots:
     void singleShot();
     void stopGrab();
 
-
-
-    // QObject interface
 protected:
     void timerEvent(QTimerEvent *event);
+    void resizeEvent(QResizeEvent *event);
+
+
 };
 
 #endif // MAINWINDOW_H

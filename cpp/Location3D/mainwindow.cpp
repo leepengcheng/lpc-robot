@@ -1,12 +1,28 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-//#include "imgprocess.hpp"
-#include <chrono>
-#include <thread>
 #include "camsetting.h"
 #include "camcalibration.h"
 
+//BZERO
+#include <b0/node.h>
+#include <b0/publisher.h>
+#include <b0/subscriber.h>
+#include <boost/lexical_cast.hpp>
+#include <Windows.h>
 
+//thread_sleep
+//#include <chrono>
+//#include <thread>
+
+#define SLEEP_MS(x) Sleep(x)
+
+
+
+void sensorCallback(const std::string &sensTrigger_packedInt)
+{
+    //    sensorTrigger=((int*)sensTrigger_packedInt.c_str())[0];
+    printf("%s\n",sensTrigger_packedInt.c_str());
+}
 
 //void MainWindow::display_match_pose (HTuple hv_ShapeModel3DID, HTuple hv_Pose, HTuple hv_WindowHandle)
 //{
@@ -153,55 +169,56 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    this->initialize();
-
-    //打开设备
-    connect(ui->btn_opendevice,SIGNAL(clicked()),SLOT(openDevice()));
-
-    //开始采集
-    connect(ui->btn_startgrab,SIGNAL(clicked()),SLOT(startGrab()));
-
-    //停止采集
-    connect(ui->btn_stopgrab,SIGNAL(clicked()),SLOT(stopGrab()));
-
-    //单张图拍摄
-    connect(ui->btn_snapshot,SIGNAL(clicked()),SLOT(singleShot()));
+    this->initUI();
+    this->initBZERO();
+    //    connect(ui->btn_opendevice,SIGNAL(clicked()),SLOT(openDevice()));
+    //    connect(ui->btn_startgrab,SIGNAL(clicked()),SLOT(startGrab()));
+    //    connect(ui->btn_stopgrab,SIGNAL(clicked()),SLOT(stopGrab()));
+    //    connect(ui->btn_snapshot,SIGNAL(clicked()),SLOT(singleShot()));
 }
+
 
 
 MainWindow::~MainWindow()
 {
 
-    killTimer(Timer);
-    CloseFramegrabber(fgHandle);
+
+    //clear Node
+    delete pub_node;
+    delete sub_node;
+    node->cleanup();
+
+    CloseAllFramegrabbers();
+    //    if(isDeviceOpen)
+    //    {
+    //        CloseFramegrabber(fgHandle);
+    //    }
     if (modelID != -1)
     {
         ClearShapeModel3d(modelID);
     }
-    //    CloseAllFramegrabbers();
+    if(timer)
+    {
+        killTimer(timer);
+    }
     delete hwindow;
     delete ui;
-
 
 }
 
 
-//初始化
-void MainWindow::initialize()
+
+void MainWindow::initUI()
 {
     SetWindowAttr("border_width", 0);
     SetWindowAttr("background_color", "white");
     SetCheck("~father");
-    hwindow=new HWindow(0,0,ui->hwindow->width(),ui->hwindow->height(),(Hlong)ui->hwindow->winId(), "visible", "");
+    hwindow=new HWindow(0,0,this->width(),this->height(),(Hlong)ui->hwindow->winId(), "visible", "");
     hwindow->SetColor("green");
     hwindow->SetLineWidth(2);
     SetCheck("father");
 
-
-
-    //打开相机处理界面
-    ui->menu_camera->addAction(style()->standardIcon(QStyle::SP_ArrowBack),tr("参数设置"),
+    ui->menu_camera->addAction(style()->standardIcon(QStyle::SP_ArrowBack),tr("Cam Setting"),
                                [&](){
         if(isDeviceOpen)
         {
@@ -214,9 +231,9 @@ void MainWindow::initialize()
 
     });
 
-    //打开图片标定界面
-    ui->menu_camera->addAction(style()->standardIcon(QStyle::SP_ArrowBack),tr("相机标定"),
-                               [&](){
+
+    ui->menu_camera->addAction(style()->standardIcon(QStyle::SP_ArrowBack),tr("Cam Calibration"),[&]()
+    {
         if(isDeviceOpen)
         {
             camCalibration.reset(new CamCalibration(fgHandle));
@@ -229,19 +246,36 @@ void MainWindow::initialize()
     });
 
 
+    //    ui->menu_system->addAction(style()->standardIcon(QStyle::SP_CommandLink),tr("OpenDevice"),[&](){this->openDevice();});
+
+    ui->menu_system->addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),tr("Start"),[&](){this->startGrab();});
+
+    ui->menu_system->addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),tr("Snap"),[&](){this->singleShot();});
+
+    ui->menu_system->addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),tr("Stop"),[&](){this->stopGrab();});
+
+}
+
+void MainWindow::initBZERO()
+{
+    node=new b0::Node("subNode");
+    sub_node=new b0::Subscriber(node,"topic1_string",&sensorCallback);
+    pub_node=new b0::Publisher(node,"topic1_string");
+    node->init();
 }
 
 
 
-//打开摄像头"DirectShow"
+
 void MainWindow::openDevice()
 {
     isDeviceOpen=false;
     try
     {
         CloseAllFramegrabbers();
-        OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", -1, "default", -1,
-                         "false", "default", "default", -1, -1, &fgHandle);
+        OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", 8, "rgb", -1, "false",
+                         "[0] yuv (960x540)", "[0] Intel(R) RealSense(TM) 430 with RGB Module RGB",
+                         0, -1, &fgHandle);
         GrabImageStart(fgHandle, -1);
     }
     catch (HException &except)
@@ -253,38 +287,33 @@ void MainWindow::openDevice()
     isDeviceOpen=true;
     GrabImage(&Image,fgHandle);
     GetImageSize(Image,&Width,&Height);
+    ui->hwindow->resize(Width[0].L(),Height[0].L());
     hwindow->SetPart(0,0,Height-1,Width-1);
-    //设置尺寸
-    hwindow->SetWindowExtents(0,0,ui->hwindow->width(),ui->hwindow->height());
-
-    ui->btn_opendevice->setEnabled(!isDeviceOpen);
-    ui->btn_startgrab->setEnabled(isDeviceOpen);
-    ui->btn_snapshot->setEnabled(isDeviceOpen);
-    ui->btn_stopgrab->setEnabled(!isDeviceOpen);
-
-    this->statusBar()->showMessage("device is opening",3000);
+    this->resize(Width[0].L(),Height[0].L());
+    this->statusBar()->showMessage("Device is Opening",3000);
 }
 
 
 
 void MainWindow::startGrab()
 {
+    if(!isDeviceOpen)
+    {
+        this->openDevice();
+    }
     if(isDeviceOpen)
     {
-        Timer = startTimer(30);
-        ui->btn_startgrab->setEnabled(false);
-        ui->btn_stopgrab->setEnabled(true);
+        timer = startTimer(30);
     }
     else
     {
-        this->statusBar()->showMessage("Open Device First",3000);
-
+        this->statusBar()->showMessage("Can Not Open Device,Please Check Camera",3000);
     }
 
 }
 
 
-//处理图片
+
 void MainWindow::processImage()
 {
     GrabImage(&Image,fgHandle);
@@ -293,23 +322,36 @@ void MainWindow::processImage()
 
 void MainWindow::singleShot()
 {
-    //    this->processImage();
-    this->action();
+    this->processImage();
+    //    this->action();
 }
 
 void MainWindow::stopGrab()
 {
-    //使能按钮
-    killTimer(Timer);
-    ui->btn_startgrab->setEnabled(true);
-    ui->btn_stopgrab->setEnabled(false);
+    if(timer)
+    {
+        killTimer(timer);
+        timer=0;
+    }
 }
 
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-    //    this->processImage();
+    this->processImage();
 
+    //publish messages
+    pub_node->publish("hello world123");
+
+    //     handle B0 messages:
+    node->spinOnce();
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+
+    ui->hwindow->setGeometry(0,0,this->width(),this->height());
+    hwindow->SetWindowExtents(0,0,this->width(),this->height());
 }
 
 void MainWindow:: action()
@@ -349,7 +391,7 @@ void MainWindow:: action()
     }
     catch (HalconCpp::HException)
     {
-        //从dxf文件创建模板
+        //Load dxf Template
         ReadObjectModel3d("C:/Users/Public/Documents/MVTec/HALCON-12.0/examples/3d_models/tile_spacer.dxf", 0.0001, HTuple(), HTuple(), &objModelID,
                           &dxfStatus);
         PrepareObjectModel3d(objModelID, "shape_based_matching_3d", "true", HTuple(),HTuple());
@@ -399,19 +441,20 @@ void MainWindow:: action()
                 HTuple step_val93 = 1;
                 for (hv_J=0; hv_J.Continue(end_val93, step_val93); hv_J += step_val93)
                 {
-                    //显示轮廓
+
+                    //Display contour
                     poseTmp = pose.TupleSelectRange(hv_J*7,(hv_J*7)+6);
                     ProjectShapeModel3d(&modelContours, modelID, camParam, poseTmp,"true", HTuple(30).TupleRad());
                     hwindow->SetColor("white");
                     hwindow->DispObj(modelContours);
 
-                    ////显示坐标系
+                    //Display Axis
                     hwindow->SetColored(3);
                     disp_3d_coord_system(camParam, poseTmp, 0.015);
 
                 }
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+//            std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
         }
     }

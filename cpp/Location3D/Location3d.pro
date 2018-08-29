@@ -18,8 +18,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 ##########defines#############
-HALCONROOT="C:/Programs/Halcon"
-#REALSENSEROOT="C:/Program Files (x86)/Intel RealSense SDK 2.0"
+
+
 
 win32:DEFINES += WIN32
 
@@ -27,9 +27,18 @@ win32:DEFINES += WIN32
     QMAKE_CXXFLAGS += -O2
     QMAKE_CXXFLAGS += -W3
 }
-
+############Boost#############
+BOOST_INCLUDE_DIRS="D:/RawDownLoads/boost_1_62"
+BOOST_LIB_DIRS = "$$BOOST_INCLUDE_DIRS/lib64-msvc-14.0"
+B0_INCLUDE_DIRS="$$PWD/include"
+B0_LIBS = "$$PWD/lib/b0.lib"
+INCLUDEPATH += $$BOOST_INCLUDE_DIRS
+INCLUDEPATH += $$B0_INCLUDE_DIRS
+LIBS +=  $$B0_LIBS
+LIBS += -L$$BOOST_LIB_DIRS
 
 ############hanclon#############
+HALCONROOT="C:/Programs/Halcon"
 INCLUDEPATH   += "$$(HALCONROOT)/include"
 INCLUDEPATH   += "$$(HALCONROOT)/include/halconcpp"
 QMAKE_LIBDIR  += "$$(HALCONROOT)/lib/$$(HALCONARCH)" \
@@ -38,12 +47,11 @@ LIBS    += "$$(HALCONROOT)/lib/x64-win64/halconcpp.lib" \
            "$$(HALCONROOT)/lib/x64-win64/halcon.lib"
 
 ############realsense#############
-#INCLUDEPATH   += "$$(REALSENSEROOT)/include"
-#INCLUDEPATH   += "$$(REALSENSEROOT)/samples"
-#LIBS+="$$(REALSENSEROOT)/lib/x64/realsense2.lib"
-#QMAKE_LIBDIR  += "$$(REALSENSEROOT)/lib/x64"
-
-
+#REALSENSEROOT="C:/Program Files (x86)/Intel RealSense SDK 2.0"
+#INCLUDEPATH   += "$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/include)"
+#INCLUDEPATH   += "$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/samples)"
+#QMAKE_LIBDIR  += "$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/lib/x64)"
+#LIBS+="$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/lib/x64/realsense2.lib)"
 
 
 SOURCES += \
