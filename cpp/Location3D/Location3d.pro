@@ -13,15 +13,11 @@ TARGET = Location3D
 TEMPLATE = app
 
 
-DEFINES += QT_DEPRECATED_WARNINGS
-
-
 
 ##########defines#############
-
-
-
+DEFINES += QT_DEPRECATED_WARNINGS
 win32:DEFINES += WIN32
+
 
 *-msvc* {
     QMAKE_CXXFLAGS += -O2
@@ -30,12 +26,13 @@ win32:DEFINES += WIN32
 ############Boost#############
 BOOST_INCLUDE_DIRS="D:/RawDownLoads/boost_1_62"
 BOOST_LIB_DIRS = "$$BOOST_INCLUDE_DIRS/lib64-msvc-14.0"
-B0_INCLUDE_DIRS="$$PWD/include"
+B0_INCLUDE_DIRS="$$PWD/include/bluezero"
 B0_LIBS = "$$PWD/lib/b0.lib"
 INCLUDEPATH += $$BOOST_INCLUDE_DIRS
 INCLUDEPATH += $$B0_INCLUDE_DIRS
 LIBS +=  $$B0_LIBS
 LIBS += -L$$BOOST_LIB_DIRS
+
 
 ############hanclon#############
 HALCONROOT="C:/Programs/Halcon"
@@ -52,6 +49,8 @@ LIBS    += "$$(HALCONROOT)/lib/x64-win64/halconcpp.lib" \
 #INCLUDEPATH   += "$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/samples)"
 #QMAKE_LIBDIR  += "$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/lib/x64)"
 #LIBS+="$$quote(C:/Program Files (x86)/Intel RealSense SDK 2.0/lib/x64/realsense2.lib)"
+
+
 
 
 SOURCES += \
@@ -72,3 +71,5 @@ FORMS += \
         mainwindow.ui \
     camsetting.ui \
     camcalibration.ui
+
+

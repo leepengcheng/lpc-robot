@@ -10,7 +10,10 @@
 #include <boost/lexical_cast.hpp>
 #include <Windows.h>
 
-//thread_sleep
+
+
+
+////for thread_sleep
 //#include <chrono>
 //#include <thread>
 
@@ -274,7 +277,7 @@ void MainWindow::openDevice()
     {
         CloseAllFramegrabbers();
         OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", 8, "rgb", -1, "false",
-                         "[0] yuv (960x540)", "[0] Intel(R) RealSense(TM) 430 with RGB Module RGB",
+                         "[0] yuv (640x480)", "[0] Intel(R) RealSense(TM) 430 with RGB Module RGB",
                          0, -1, &fgHandle);
         GrabImageStart(fgHandle, -1);
     }
@@ -318,6 +321,8 @@ void MainWindow::processImage()
 {
     GrabImage(&Image,fgHandle);
     hwindow->DispObj(Image);
+//    ConvertImageType(Image,&Image,"byte");
+//    GetImagePointer3(Image,&Rptr,&Gptr,&Bptr,&cType,&Width,&Height);
 }
 
 void MainWindow::singleShot()

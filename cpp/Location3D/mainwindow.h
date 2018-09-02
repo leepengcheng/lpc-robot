@@ -20,6 +20,8 @@ class Subscriber;
 class Publisher;
 }
 
+
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -50,6 +52,9 @@ private:
     HTuple  Width, Height;
     HTuple  modelID;
 
+
+    HTuple cType,Rptr,Gptr,Bptr;
+
     //Display function
 //    void display_match_pose (HTuple, HTuple, HTuple);
     void disp_3d_coord_system (HTuple& , HTuple& , HTuple);
@@ -59,6 +64,7 @@ private:
     b0::Node* node=NULL;
     b0::Subscriber* sub_node=NULL;
     b0::Publisher*  pub_node=NULL;
+
 
 private slots:
     void openDevice();
