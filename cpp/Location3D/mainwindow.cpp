@@ -3,23 +3,18 @@
 #include "camsetting.h"
 #include "camcalibration.h"
 
-//BZERO
+#ifdef WITH_BZERO
 #include <b0/node.h>
 #include <b0/publisher.h>
 #include <b0/subscriber.h>
 #include <boost/lexical_cast.hpp>
 #include <Windows.h>
 #define SLEEP_MS(x) Sleep(x)
+#endif
 
-
-
-////for thread_sleep
-//#include <chrono>
-//#include <thread>
 
 
 //for msgpack-rpc
-#include <iostream>
 #include "rpc/client.h"
 #include "rpc/rpc_error.h"
 #include "image.h"
@@ -30,6 +25,7 @@ void sensorCallback(const std::string &sensTrigger_packedInt)
 {
     //    sensorTrigger=((int*)sensTrigger_packedInt.c_str())[0];
     printf("%s\n",sensTrigger_packedInt.c_str());
+
 }
 
 //void MainWindow::display_match_pose (HTuple hv_ShapeModel3DID, HTuple hv_Pose, HTuple hv_WindowHandle)
@@ -191,12 +187,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    
-    
+
     //clear Node
-    //    delete pub_node;
-    //    delete sub_node;
+#ifdef WITH_BZERO
+    //delete pub_node;
+    //delete sub_node;
     node->cleanup();
+#endif
     
     //delete rpc
     //    delete rpc_cli;
@@ -205,10 +202,7 @@ MainWindow::~MainWindow()
     delete g;
     
     CloseAllFramegrabbers();
-    //    if(isDeviceOpen)
-    //    {
-    //        CloseFramegrabber(fgHandle);
-    //    }
+    //    if(isDeviceOpen)CloseFramegrabber(fgHandle);
     if (modelID != -1)
     {
         ClearShapeModel3d(modelID);
@@ -226,11 +220,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::initUI()
 {
+    isDeviceOpen=false;
+    SetSystem("use_window_thread", "true");
     SetWindowAttr("border_width", 0);
     SetWindowAttr("background_color", "white");
     SetCheck("~father");
     hwindow=new HWindow(0,0,this->width(),this->height(),(Hlong)ui->hwindow->winId(), "visible", "");
     hwindow->SetColor("green");
+    hwindow->SetDraw("margin");
     hwindow->SetLineWidth(2);
     SetCheck("father");
     
@@ -274,21 +271,22 @@ void MainWindow::initUI()
 
 void MainWindow::initBZERO()
 {
+#ifdef WITH_BZERO
     //    node=new b0::Node("subNode");
     //    sub_node=new b0::Subscriber(node,"topic1_string",&sensorCallback);
     //    pub_node=new b0::Publisher(node,"topic1_string");
+
     node.reset(new b0::Node("subNode"));
     sub_node.reset(new b0::Subscriber(node.get(),"topic1_string",&sensorCallback));
     pub_node.reset(new b0::Publisher(node.get(),"topic1_string"));
-
     node->init();
+#endif
 }
 
 void MainWindow::initRPC()
 {
-    //    rpc_cli=new  rpc::client("192.168.6.85", rpc::constants::DEFAULT_PORT);
     //    rpc_cli=new  rpc::client("192.168.6.85", 8800);
-    rpc_cli.reset(new  rpc::client("192.168.6.85", 18800));
+    rpc_cli.reset(new  rpc::client("127.0.0.1", 8800));
 }
 
 void MainWindow::initTemplate()
@@ -314,7 +312,7 @@ void MainWindow::initTemplate()
     catch (HalconCpp::HException)
     {
         //Load dxf Template
-        ReadObjectModel3d("E:/Location3D/lib/template.dxf", "mm", HTuple(), HTuple(), &dxfModelID,
+        ReadObjectModel3d("../lib/template.dxf", "mm", HTuple(), HTuple(), &dxfModelID,
                           &dxfStatus);
         PrepareObjectModel3d(dxfModelID, "shape_based_matching_3d", "true", HTuple(),HTuple());
 
@@ -333,7 +331,7 @@ void MainWindow::initTemplate()
         catch (HalconCpp::HException)
         {
             //HDevExpDefaultException.ToHTuple(&hException);
-            this->statusBar()->showMessage("Writing model to disk ... failed!");
+            std::cout<<"Writing model to disk ... failed!"<<std::endl;
         }
     }
 }
@@ -345,7 +343,7 @@ void MainWindow::openDevice()
     {
         CloseAllFramegrabbers();
         OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", 8, "rgb", -1, "false",
-                         "[1] yuv (640x480)", "[1] Intel(R) RealSense(TM) 435 with RGB Module RGB",
+                         "[0] yuv (640x480)", "[0] Intel(R) RealSense(TM) 430 with RGB Module RGB",
                          0, -1, &fgHandle);
         GrabImageStart(fgHandle, -1);
     }
@@ -388,85 +386,69 @@ void MainWindow::startGrab()
 
 void MainWindow::callYoloService()
 {
-    //    try{
+    try{
 
-    //        //        auto result=rpc_cli->async_call("add", 3, 3);
-    //        //        double five=result.get().as<double>();
-    //        double five = rpc_cli->call("add", 3, 3).as<double>();
-    //        std::cout <<"rpc: 3+3=" <<five << std::endl;
-    //    }
-    //    catch (rpc::rpc_error &e) {
-    //        std::cout << std::endl
-    //                  << e.what() << std::endl;
-    //        std::cout << "in function '" << e.get_function_name() << "': ";
+        HTuple cType,RedPtr,GreenPtr,BluePtr;
+        GetImagePointer3(Image,&RedPtr,&GreenPtr,&BluePtr,&cType,&Width,&Height);
+        HalconImageMsg himg_msg;
+        himg_msg.width = Width.I();
+        himg_msg.height = Height.I();
+        r=((byte*)RedPtr.L());
+        g=((byte*)GreenPtr.L());
+        b=((byte*)BluePtr.L());
 
-    //        using err_t = std::tuple<int, std::string>;
-    //        auto err = e.get_error().as<err_t>();
-    //        std::cout << "[error " << std::get<0>(err) << "]: " << std::get<1>(err)
-    //                  << std::endl;
-    //    }
+        int  buff_size=himg_msg.width*himg_msg.height;
+        std::vector<uchar>  redrbuff(r, r + buff_size);
+        std::vector<uchar>  greenbuff(g, g + buff_size);
+        std::vector<uchar>  bluebuff(b, b + buff_size);
+        himg_msg.r = redrbuff;
+        himg_msg.g = greenbuff;
+        himg_msg.b = bluebuff;
+
+        auto jsonData = rpc_cli->call("inference",himg_msg).as<std::string>();
+        jsondoc=QJsonDocument::fromJson(jsonData.c_str(),&jsonerr);
+        if(jsonerr.error==QJsonParseError::NoError)
+        {
+            jsonobj=jsondoc.object();
+            std::cout<<jsonobj["model"].toString().toStdString()<<"\n";
+            auto objs=jsonobj["objects"].toArray();
+            for (auto obj:objs)
+            {
+                double c1=obj.toObject()["xmin"].toDouble();
+                double r1=obj.toObject()["ymin"].toDouble();
+                double c2=obj.toObject()["xmax"].toDouble();
+                double r2=obj.toObject()["ymax"].toDouble();
+                hwindow->DispRectangle1(r1,c1,r2,c2);
+                hwindow->SetTposition(r1,c1);
+                hwindow->WriteString(obj.toObject()["class"].toString().toStdString().c_str());
+            }
+        }
+        else
+        {
+            std::cout<<"json parse error\n";
+        }
+    }
+    catch (rpc::rpc_error &e) {
+        std::cout << std::endl
+                  << e.what() << std::endl;
+        std::cout << "in function '" << e.get_function_name() << "': ";
+
+        using err_t = std::tuple<int, std::string>;
+        auto err = e.get_error().as<err_t>();
+        std::cout << "[error " << std::get<0>(err) << "]: " << std::get<1>(err)
+                  << std::endl;
+    }
 }
 
 void MainWindow::singleShot()
 {
-    //    this->processImage();
-    //    this->callYoloService();
+    if(!isDeviceOpen)
+    {
+        this->statusBar()->showMessage("Please Open Device First");
+        return;
+    }
+    this->processImage();
 
-
-    //    GrabImage(&Image,fgHandle);
-    //    hwindow->DispObj(Image);
-
-    //    HTuple cType,RedPtr,GreenPtr,BluePtr;
-    //    //    ConvertImageType(Image,&Image,"byte");
-    //    GetImagePointer3(Image,&RedPtr,&GreenPtr,&BluePtr,&cType,&Width,&Height);
-    //    HalconImageMsg himg_msg;
-    //    himg_msg.width = Width.I();
-    //    himg_msg.height = Height.I();
-    //    r=((byte*)RedPtr.L());
-    //    g=((byte*)GreenPtr.L());
-    //    b=((byte*)BluePtr.L());
-
-
-
-    //    int  buff_size=himg_msg.width*himg_msg.height;
-    //    std::vector<uchar>  redrbuff(r, r + buff_size);
-    //    std::vector<uchar>  greenbuff(g, g + buff_size);
-    //    std::vector<uchar>  bluebuff(b, b + buff_size);
-    //    himg_msg.r = redrbuff;
-    //    himg_msg.g = greenbuff;
-    //    himg_msg.b = bluebuff;
-    
-
-
-
-    //    auto jsonData = rpc_cli->call("detect",himg_msg).as<std::string>();
-    //    jsondoc=QJsonDocument::fromJson(jsonData.c_str(),&jsonerr);
-    //    if(jsonerr.error==QJsonParseError::NoError)
-    //    {
-    //        jsonobj=jsondoc.object();
-    //        std::cout<<jsonobj["model"].toString().toStdString()<<"\n";
-    //        auto objs=jsonobj["objs"].toArray();
-    //        for (auto obj:objs)
-    //        {
-    //              HObject rec;
-    //              double c1=obj.toObject()["xmin"].toDouble();
-    //              double r1=obj.toObject()["ymin"].toDouble();
-    //              double w=obj.toObject()["width"].toDouble();
-    //              double h=obj.toObject()["height"].toDouble();
-    //              double r2=r1+h;
-    //              double c2=c1+w;
-
-    //              hwindow->DispRectangle1(r1,c1,c1+w,r1+h);
-    ////              hwindow->DrawRectangle1(&r1,&c1,&r2,&c2);
-    ////              hwindow->SetTposition(r1,c1);
-    ////              hwindow->WriteString(obj.toObject()["class"].toString().toStdString().c_str());
-    ////              WriteString(hwindow->GetHandle(),obj.toObject()["class"].toString().toStdString().c_str());
-    //        }
-    //    }
-    //    else
-    //    {
-    //        std::cout<<"@@@@@@parse error\n";
-    //    }
 
 }
 
@@ -482,11 +464,12 @@ void MainWindow::stopGrab()
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-        this->processImage();
-    //    this->singleShot();
-    //    this->callYoloService();
+    GrabImage(&Image,fgHandle);
+    hwindow->DispObj(Image);
+    this->callYoloService();
+
     
-    //publish messages
+    ////  ##publish messages
     //    pub_node->publish("hello world123");
     
     //    //handle B0 messages:
@@ -502,43 +485,33 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 void MainWindow:: processImage()
 {
-    
-    
-    HObject  modelContours;
-    HTuple  pose, covPose, score;
-    HTuple   hv_J, poseTmp;
-
-    GrabImage(&Image,fgHandle);
-    hwindow->DispObj(Image);
-
-//    FindShapeModel3d(Image, modelID, 0.7, 0.9, 0, ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
-//                     ((HTuple(3).Append(0.75)).Append("true")), &pose, &covPose, &score);
+    HObject  objContours;
+    HTuple  pose,poseTmp, covPose, score;
+    double t1 = HSystem::CountSeconds();
+    //    FindShapeModel3d(Image, modelID, 0.7, 0.9, 0, ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
+    //                     ((HTuple(1).Append(0.75)).Append("true")), &pose, &covPose, &score);
 
     FindShapeModel3d(Image, modelID, 0.7, 0.9, (HTuple(4).Append(2)),
-        ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
-        ((HTuple(1).Append(0.7)).Append("true")), &pose, &covPose,
-        &score);
+                     ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
+                     ((HTuple(1).Append(0.5)).Append("true")), &pose, &covPose,
+                     &score);
 
+    HTuple obj_num = (score.TupleLength())-1;
+    for (HTuple i=0; i.Continue(obj_num, 1); i += 1)
     {
-        HTuple obj_num = (score.TupleLength())-1;
-        for (hv_J=0; hv_J.Continue(obj_num, 1); hv_J += 1)
-        {
 
-            //Display contour
-            poseTmp = pose.TupleSelectRange(hv_J*7,(hv_J*7)+6);
-            ProjectShapeModel3d(&modelContours, modelID, camParam, poseTmp,"true", HTuple(30).TupleRad());
-            hwindow->SetColor("white");
-            hwindow->DispObj(modelContours);
+        //    Display contour
+        poseTmp = pose.TupleSelectRange(i*7,(i*7)+6);
+        ProjectShapeModel3d(&objContours, modelID, camParam, poseTmp,"true", HTuple(30).TupleRad());
+        hwindow->SetColor("white");
+        hwindow->DispObj(objContours);
 
-            //Display Axis
-            hwindow->SetColored(3);
-            disp_3d_coord_system(camParam, poseTmp, 0.015);
-
-        }
+        //Display Axis
+        hwindow->SetColored(3);
+        disp_3d_coord_system(camParam, poseTmp, 0.015);
     }
-    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    
+    double t2 = HSystem::CountSeconds();
+    this->statusBar()->showMessage(QString("Time Cost %1").arg(t2-t1));
 }
 
 

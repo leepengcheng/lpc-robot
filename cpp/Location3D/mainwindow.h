@@ -10,6 +10,8 @@
 
 //share ptr
 #include <memory>
+//#include <chrono>
+//#include <thread>
 
 
 using namespace HalconCpp;
@@ -46,10 +48,10 @@ private:
     void initBZERO();
     void initRPC();
     void initTemplate();
-    bool isDeviceOpen=false;
 
     // Timer
     long timer=0;
+    bool isDeviceOpen=false;
 
 
     std::shared_ptr<CamSetting> camSetting;
@@ -71,13 +73,12 @@ private:
     void disp_3d_coord_system (HTuple& , HTuple& , HTuple);
     void gen_arrow_contour_xld (HObject *, HTuple , HTuple , HTuple , HTuple , HTuple , HTuple );
 
-    //BlueZero Node
-    //    b0::Node* node=NULL;
-    // b0::Subscriber* sub_node=NULL;
-    //    b0::Publisher*  pub_node=NULL;
+//BlueZero Node
+#ifdef WITH_BZERO
     std::shared_ptr<b0::Node> node;
     std::shared_ptr<b0::Subscriber> sub_node;
     std::shared_ptr<b0::Publisher>  pub_node;
+#endif
 
     //rpc libs
     //    rpc::client* rpc_cli;
@@ -89,8 +90,6 @@ private:
     QJsonParseError jsonerr;
     QJsonDocument jsondoc;
     QJsonObject jsonobj;
-
-
 
 private slots:
     void openDevice();

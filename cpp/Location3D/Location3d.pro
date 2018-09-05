@@ -9,7 +9,8 @@ TEMPLATE = app
 ##########defines#############
 DEFINES += QT_DEPRECATED_WARNINGS
 DEFINES += WIN32
-DEFINES += BZERO
+
+#CONFIG += WITH_BZERO
 
 *-msvc* {
     QMAKE_CXXFLAGS += -O2
@@ -19,7 +20,8 @@ DEFINES += BZERO
 
 }
 ############Boost#############
-with BZERO{
+WITH_BZERO {
+    DEFINES += WITH_BZERO
     BOOST_INCLUDE_DIRS="D:/library/boost"
     BOOST_LIB_DIRS = "$$BOOST_INCLUDE_DIRS/lib64-msvc-14.0"
     B0_INCLUDE_DIRS="$$PWD/include/bluezero"
@@ -34,8 +36,7 @@ with BZERO{
 HALCONROOT="C:/Programs/Halcon"
 INCLUDEPATH   += "$$(HALCONROOT)/include"
 INCLUDEPATH   += "$$(HALCONROOT)/include/halconcpp"
-QMAKE_LIBDIR  += "$$(HALCONROOT)/lib/$$(HALCONARCH)" \
-                  "$$(REALSENSEROOT)/lib/x64"
+QMAKE_LIBDIR  += "$$(HALCONROOT)/lib/$$(HALCONARCH)"
 LIBS    += "$$(HALCONROOT)/lib/x64-win64/halconcpp.lib" \
            "$$(HALCONROOT)/lib/x64-win64/halcon.lib"
 
