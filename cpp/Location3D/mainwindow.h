@@ -3,8 +3,13 @@
 
 #include <QMainWindow>
 #include <HalconCpp.h>
-#include <memory>
+// for parse json data
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 
+//share ptr
+#include <memory>
 
 
 using namespace HalconCpp;
@@ -18,6 +23,10 @@ namespace b0 {
 class Node;
 class Subscriber;
 class Publisher;
+}
+
+namespace rpc {
+class client;
 }
 
 
@@ -35,7 +44,8 @@ private:
     Ui::MainWindow *ui;
     void initUI();
     void initBZERO();
-    void action();
+    void initRPC();
+    void initTemplate();
     bool isDeviceOpen=false;
 
     // Timer
@@ -46,30 +56,47 @@ private:
     std::shared_ptr<CamCalibration> camCalibration;
 
     //Halcon Variable
+    HObject Image;
     HTuple   fgHandle;
     HWindow*   hwindow;
-    HObject Image;
     HTuple  Width, Height;
     HTuple  modelID;
+    HTuple  camParam;
 
 
-    HTuple cType,Rptr,Gptr,Bptr;
+
 
     //Display function
-//    void display_match_pose (HTuple, HTuple, HTuple);
+    //    void display_match_pose (HTuple, HTuple, HTuple);
     void disp_3d_coord_system (HTuple& , HTuple& , HTuple);
     void gen_arrow_contour_xld (HObject *, HTuple , HTuple , HTuple , HTuple , HTuple , HTuple );
 
     //BlueZero Node
-    b0::Node* node=NULL;
-    b0::Subscriber* sub_node=NULL;
-    b0::Publisher*  pub_node=NULL;
+    //    b0::Node* node=NULL;
+    // b0::Subscriber* sub_node=NULL;
+    //    b0::Publisher*  pub_node=NULL;
+    std::shared_ptr<b0::Node> node;
+    std::shared_ptr<b0::Subscriber> sub_node;
+    std::shared_ptr<b0::Publisher>  pub_node;
+
+    //rpc libs
+    //    rpc::client* rpc_cli;
+    std::shared_ptr<rpc::client> rpc_cli;
+    byte* r;
+    byte* g;
+    byte* b;
+
+    QJsonParseError jsonerr;
+    QJsonDocument jsondoc;
+    QJsonObject jsonobj;
+
 
 
 private slots:
     void openDevice();
     void startGrab();
     void processImage();
+    void callYoloService();
     void singleShot();
     void stopGrab();
 

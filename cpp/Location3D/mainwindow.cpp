@@ -9,7 +9,7 @@
 #include <b0/subscriber.h>
 #include <boost/lexical_cast.hpp>
 #include <Windows.h>
-
+#define SLEEP_MS(x) Sleep(x)
 
 
 
@@ -17,7 +17,12 @@
 //#include <chrono>
 //#include <thread>
 
-#define SLEEP_MS(x) Sleep(x)
+
+//for msgpack-rpc
+#include <iostream>
+#include "rpc/client.h"
+#include "rpc/rpc_error.h"
+#include "image.h"
 
 
 
@@ -64,16 +69,16 @@ void sensorCallback(const std::string &sensTrigger_packedInt)
 
 void MainWindow::disp_3d_coord_system ( HTuple &camParam, HTuple &pose, HTuple axesLength)
 {
-
+    
     // Local iconic variables
     HObject  ho_Arrows;
-
+    
     // Local control variables
     HTuple  hv_TransWorld2Cam, hv_OrigCamX, hv_OrigCamY;
     HTuple  hv_OrigCamZ, hv_Row0, hv_Column0, hv_X, hv_Y, hv_Z;
     HTuple  hv_RowAxX, hv_ColumnAxX, hv_RowAxY, hv_ColumnAxY;
     HTuple  hv_RowAxZ, hv_ColumnAxZ, hv_Distance, hv_HeadLength;
-
+    
     if (0 != ((pose.TupleLength())!=7))
     {
         return;
@@ -112,21 +117,21 @@ void MainWindow::disp_3d_coord_system ( HTuple &camParam, HTuple &pose, HTuple a
 void MainWindow::gen_arrow_contour_xld (HObject *ho_Arrow, HTuple row1, HTuple column1,
                                         HTuple row2, HTuple column2, HTuple headLength, HTuple headWidth)
 {
-
+    
     // Local iconic variables
     HObject  tempArrow;
-
+    
     // Local control variables
     HTuple  hv_Length, zeroLengthIndex, hv_DR;
     HTuple  hv_DC, halfHeadWidth, rowP1, colP1, rowP2;
     HTuple  colP2, index;
-
-
+    
+    
     GenEmptyObj(&(*ho_Arrow));
     //
     //Calculate the arrow length
     DistancePp(row1, column1, row2, column2, &hv_Length);
-
+    
     zeroLengthIndex = hv_Length.TupleFind(0);
     if (0 != (zeroLengthIndex!=-1))
     {
@@ -174,6 +179,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     this->initUI();
     this->initBZERO();
+    this->initRPC();
+    this->initTemplate();
     //    connect(ui->btn_opendevice,SIGNAL(clicked()),SLOT(openDevice()));
     //    connect(ui->btn_startgrab,SIGNAL(clicked()),SLOT(startGrab()));
     //    connect(ui->btn_stopgrab,SIGNAL(clicked()),SLOT(stopGrab()));
@@ -184,13 +191,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-
-
+    
+    
     //clear Node
-    delete pub_node;
-    delete sub_node;
+    //    delete pub_node;
+    //    delete sub_node;
     node->cleanup();
-
+    
+    //delete rpc
+    //    delete rpc_cli;
+    delete r;
+    delete b;
+    delete g;
+    
     CloseAllFramegrabbers();
     //    if(isDeviceOpen)
     //    {
@@ -206,7 +219,7 @@ MainWindow::~MainWindow()
     }
     delete hwindow;
     delete ui;
-
+    
 }
 
 
@@ -220,7 +233,7 @@ void MainWindow::initUI()
     hwindow->SetColor("green");
     hwindow->SetLineWidth(2);
     SetCheck("father");
-
+    
     ui->menu_camera->addAction(style()->standardIcon(QStyle::SP_ArrowBack),tr("Cam Setting"),
                                [&](){
         if(isDeviceOpen)
@@ -231,10 +244,10 @@ void MainWindow::initUI()
         {
             this->statusBar()->showMessage("Please Open Device First!",3000);
         }
-
+        
     });
-
-
+    
+    
     ui->menu_camera->addAction(style()->standardIcon(QStyle::SP_ArrowBack),tr("Cam Calibration"),[&]()
     {
         if(isDeviceOpen)
@@ -245,30 +258,85 @@ void MainWindow::initUI()
         {
             this->statusBar()->showMessage("Please Open Device First!",3000);
         }
-
+        
     });
-
-
+    
+    
     //    ui->menu_system->addAction(style()->standardIcon(QStyle::SP_CommandLink),tr("OpenDevice"),[&](){this->openDevice();});
-
+    
     ui->menu_system->addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),tr("Start"),[&](){this->startGrab();});
-
+    
     ui->menu_system->addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),tr("Snap"),[&](){this->singleShot();});
-
+    
     ui->menu_system->addAction(style()->standardIcon(QStyle::SP_DialogOpenButton),tr("Stop"),[&](){this->stopGrab();});
-
+    
 }
 
 void MainWindow::initBZERO()
 {
-    node=new b0::Node("subNode");
-    sub_node=new b0::Subscriber(node,"topic1_string",&sensorCallback);
-    pub_node=new b0::Publisher(node,"topic1_string");
+    //    node=new b0::Node("subNode");
+    //    sub_node=new b0::Subscriber(node,"topic1_string",&sensorCallback);
+    //    pub_node=new b0::Publisher(node,"topic1_string");
+    node.reset(new b0::Node("subNode"));
+    sub_node.reset(new b0::Subscriber(node.get(),"topic1_string",&sensorCallback));
+    pub_node.reset(new b0::Publisher(node.get(),"topic1_string"));
+
     node->init();
 }
 
+void MainWindow::initRPC()
+{
+    //    rpc_cli=new  rpc::client("192.168.6.85", rpc::constants::DEFAULT_PORT);
+    //    rpc_cli=new  rpc::client("192.168.6.85", 8800);
+    rpc_cli.reset(new  rpc::client("192.168.6.85", 18800));
+}
+
+void MainWindow::initTemplate()
+{
+    //init Template
+    camParam.Clear();
+    camParam[0] = 0.00521;
+    camParam[1] = 4899.91;
+    camParam[2] = 8.3e-006;
+    camParam[3] = 8.3e-006;
+    camParam[4] = 325.976;
+    camParam[5] = 240.643;
+    camParam[6] = 640;
+    camParam[7] = 480;
 
 
+    HTuple  dxfStatus;
+    HTuple  dxfModelID;
+    try
+    {
+        ReadShapeModel3d("template.sm3", &modelID);
+    }
+    catch (HalconCpp::HException)
+    {
+        //Load dxf Template
+        ReadObjectModel3d("E:/Location3D/lib/template.dxf", "mm", HTuple(), HTuple(), &dxfModelID,
+                          &dxfStatus);
+        PrepareObjectModel3d(dxfModelID, "shape_based_matching_3d", "true", HTuple(),HTuple());
+
+
+        CreateShapeModel3d(dxfModelID, camParam, 0, 0, 0, "gba", -(HTuple(60).TupleRad()),
+                           HTuple(60).TupleRad(), -(HTuple(60).TupleRad()), HTuple(60).TupleRad(), 0,
+                           HTuple(360).TupleRad(), 0.2, 0.4, 10, "lowest_model_level", 3, &modelID);
+
+        ClearObjectModel3d(dxfModelID);
+
+        try
+        {
+            WriteShapeModel3d(modelID, "template.sm3");
+        }
+
+        catch (HalconCpp::HException)
+        {
+            //HDevExpDefaultException.ToHTuple(&hException);
+            this->statusBar()->showMessage("Writing model to disk ... failed!");
+        }
+    }
+}
 
 void MainWindow::openDevice()
 {
@@ -277,7 +345,7 @@ void MainWindow::openDevice()
     {
         CloseAllFramegrabbers();
         OpenFramegrabber("DirectShow", 1, 1, 0, 0, 0, 0, "default", 8, "rgb", -1, "false",
-                         "[0] yuv (640x480)", "[0] Intel(R) RealSense(TM) 430 with RGB Module RGB",
+                         "[1] yuv (640x480)", "[1] Intel(R) RealSense(TM) 435 with RGB Module RGB",
                          0, -1, &fgHandle);
         GrabImageStart(fgHandle, -1);
     }
@@ -286,7 +354,7 @@ void MainWindow::openDevice()
         this->statusBar()->showMessage(except.ProcName().Text(),3000);
         return;
     }
-
+    
     isDeviceOpen=true;
     GrabImage(&Image,fgHandle);
     GetImageSize(Image,&Width,&Height);
@@ -306,29 +374,100 @@ void MainWindow::startGrab()
     }
     if(isDeviceOpen)
     {
-        timer = startTimer(30);
+        timer = startTimer(20);
     }
     else
     {
         this->statusBar()->showMessage("Can Not Open Device,Please Check Camera",3000);
     }
-
+    
 }
 
 
 
-void MainWindow::processImage()
+
+void MainWindow::callYoloService()
 {
-    GrabImage(&Image,fgHandle);
-    hwindow->DispObj(Image);
-//    ConvertImageType(Image,&Image,"byte");
-//    GetImagePointer3(Image,&Rptr,&Gptr,&Bptr,&cType,&Width,&Height);
+    //    try{
+
+    //        //        auto result=rpc_cli->async_call("add", 3, 3);
+    //        //        double five=result.get().as<double>();
+    //        double five = rpc_cli->call("add", 3, 3).as<double>();
+    //        std::cout <<"rpc: 3+3=" <<five << std::endl;
+    //    }
+    //    catch (rpc::rpc_error &e) {
+    //        std::cout << std::endl
+    //                  << e.what() << std::endl;
+    //        std::cout << "in function '" << e.get_function_name() << "': ";
+
+    //        using err_t = std::tuple<int, std::string>;
+    //        auto err = e.get_error().as<err_t>();
+    //        std::cout << "[error " << std::get<0>(err) << "]: " << std::get<1>(err)
+    //                  << std::endl;
+    //    }
 }
 
 void MainWindow::singleShot()
 {
-    this->processImage();
-    //    this->action();
+    //    this->processImage();
+    //    this->callYoloService();
+
+
+    //    GrabImage(&Image,fgHandle);
+    //    hwindow->DispObj(Image);
+
+    //    HTuple cType,RedPtr,GreenPtr,BluePtr;
+    //    //    ConvertImageType(Image,&Image,"byte");
+    //    GetImagePointer3(Image,&RedPtr,&GreenPtr,&BluePtr,&cType,&Width,&Height);
+    //    HalconImageMsg himg_msg;
+    //    himg_msg.width = Width.I();
+    //    himg_msg.height = Height.I();
+    //    r=((byte*)RedPtr.L());
+    //    g=((byte*)GreenPtr.L());
+    //    b=((byte*)BluePtr.L());
+
+
+
+    //    int  buff_size=himg_msg.width*himg_msg.height;
+    //    std::vector<uchar>  redrbuff(r, r + buff_size);
+    //    std::vector<uchar>  greenbuff(g, g + buff_size);
+    //    std::vector<uchar>  bluebuff(b, b + buff_size);
+    //    himg_msg.r = redrbuff;
+    //    himg_msg.g = greenbuff;
+    //    himg_msg.b = bluebuff;
+    
+
+
+
+    //    auto jsonData = rpc_cli->call("detect",himg_msg).as<std::string>();
+    //    jsondoc=QJsonDocument::fromJson(jsonData.c_str(),&jsonerr);
+    //    if(jsonerr.error==QJsonParseError::NoError)
+    //    {
+    //        jsonobj=jsondoc.object();
+    //        std::cout<<jsonobj["model"].toString().toStdString()<<"\n";
+    //        auto objs=jsonobj["objs"].toArray();
+    //        for (auto obj:objs)
+    //        {
+    //              HObject rec;
+    //              double c1=obj.toObject()["xmin"].toDouble();
+    //              double r1=obj.toObject()["ymin"].toDouble();
+    //              double w=obj.toObject()["width"].toDouble();
+    //              double h=obj.toObject()["height"].toDouble();
+    //              double r2=r1+h;
+    //              double c2=c1+w;
+
+    //              hwindow->DispRectangle1(r1,c1,c1+w,r1+h);
+    ////              hwindow->DrawRectangle1(&r1,&c1,&r2,&c2);
+    ////              hwindow->SetTposition(r1,c1);
+    ////              hwindow->WriteString(obj.toObject()["class"].toString().toStdString().c_str());
+    ////              WriteString(hwindow->GetHandle(),obj.toObject()["class"].toString().toStdString().c_str());
+    //        }
+    //    }
+    //    else
+    //    {
+    //        std::cout<<"@@@@@@parse error\n";
+    //    }
+
 }
 
 void MainWindow::stopGrab()
@@ -343,127 +482,63 @@ void MainWindow::stopGrab()
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-    this->processImage();
-
+        this->processImage();
+    //    this->singleShot();
+    //    this->callYoloService();
+    
     //publish messages
-    pub_node->publish("hello world123");
-
-    //     handle B0 messages:
-    node->spinOnce();
+    //    pub_node->publish("hello world123");
+    
+    //    //handle B0 messages:
+    //    node->spinOnce();
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-
+    
     ui->hwindow->setGeometry(0,0,this->width(),this->height());
     hwindow->SetWindowExtents(0,0,this->width(),this->height());
 }
 
-void MainWindow:: action()
+void MainWindow:: processImage()
 {
+    
+    
+    HObject  modelContours;
+    HTuple  pose, covPose, score;
+    HTuple   hv_J, poseTmp;
 
+    GrabImage(&Image,fgHandle);
+    hwindow->DispObj(Image);
 
-    HObject  inImage, modelContours;
+//    FindShapeModel3d(Image, modelID, 0.7, 0.9, 0, ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
+//                     ((HTuple(3).Append(0.75)).Append("true")), &pose, &covPose, &score);
 
-    // Local control variables
-    HTuple  camParam, imgWidth, imgHeight, hv_WindowHandle;
-    HTuple  objModelID;
-    HTuple  dxfStatus, hv_S1, hv_S2, hv_T, hv_Times, numImages;
-    HTuple  hv_I, seconds1, pose, covPose, score;
-    HTuple  seconds2, hv_Time, hv_J, poseTmp;
+    FindShapeModel3d(Image, modelID, 0.7, 0.9, (HTuple(4).Append(2)),
+        ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
+        ((HTuple(1).Append(0.7)).Append("true")), &pose, &covPose,
+        &score);
 
-
-
-    camParam.Clear();
-    camParam[0] = 0.0269462;
-    camParam[1] = -354.842;
-    camParam[2] = 1.27964e-005;
-    camParam[3] = 1.28e-005;
-    camParam[4] = 254.24;
-    camParam[5] = 201.977;
-    camParam[6] = 512;
-    camParam[7] = 384;
-    //
-    imgWidth = ((const HTuple&)camParam)[6];
-    imgHeight = ((const HTuple&)camParam)[7];
-
-    ReadImage(&inImage, "C:/Users/Public/Documents/MVTec/HALCON-12.0/examples/images/tile_spacers/tile_spacers_color_01.png");
-
-
-    try
     {
-        ReadShapeModel3d("tile_spacer.sm3", &modelID);
-    }
-    catch (HalconCpp::HException)
-    {
-        //Load dxf Template
-        ReadObjectModel3d("C:/Users/Public/Documents/MVTec/HALCON-12.0/examples/3d_models/tile_spacer.dxf", 0.0001, HTuple(), HTuple(), &objModelID,
-                          &dxfStatus);
-        PrepareObjectModel3d(objModelID, "shape_based_matching_3d", "true", HTuple(),HTuple());
-
-        CountSeconds(&hv_S1);
-
-        CreateShapeModel3d(objModelID, camParam, 0, 0, 0, "gba", -(HTuple(60).TupleRad()),
-                           HTuple(60).TupleRad(), -(HTuple(60).TupleRad()), HTuple(60).TupleRad(), 0,
-                           HTuple(360).TupleRad(), 0.26, 0.27, 10, "lowest_model_level", 3, &modelID);
-        CountSeconds(&hv_S2);
-        hv_T = hv_S2-hv_S1;
-
-        ClearObjectModel3d(objModelID);
-
-        try
+        HTuple obj_num = (score.TupleLength())-1;
+        for (hv_J=0; hv_J.Continue(obj_num, 1); hv_J += 1)
         {
-            WriteShapeModel3d(modelID, "tile_spacer.sm3");
-        }
 
-        catch (HalconCpp::HException)
-        {
-            //HDevExpDefaultException.ToHTuple(&hException);
-            this->statusBar()->showMessage("Writing model to disk ... failed!");
-        }
-    }
+            //Display contour
+            poseTmp = pose.TupleSelectRange(hv_J*7,(hv_J*7)+6);
+            ProjectShapeModel3d(&modelContours, modelID, camParam, poseTmp,"true", HTuple(30).TupleRad());
+            hwindow->SetColor("white");
+            hwindow->DispObj(modelContours);
 
-
-    hv_Times = HTuple();
-    numImages = 12;
-    {
-        HTuple end = numImages;
-        HTuple step = 1;
-        for (hv_I=1; hv_I.Continue(end, step); hv_I += step)
-        {
-            ReadImage(&inImage, "tile_spacers/tile_spacers_color_"+(hv_I.TupleString("02")));
-            hwindow->DispImage(inImage);
-
-            CountSeconds(&seconds1);
-            FindShapeModel3d(inImage, modelID, 0.7, 0.85, 0, ((HTuple("num_matches").Append("max_overlap")).Append("border_model")),
-                             ((HTuple(3).Append(0.75)).Append("true")), &pose, &covPose, &score);
-            CountSeconds(&seconds2);
-            hv_Time = seconds2-seconds1;
-            hv_Times = hv_Times.TupleConcat(hv_Time);
-
-            {
-                HTuple end_val93 = (score.TupleLength())-1;
-                HTuple step_val93 = 1;
-                for (hv_J=0; hv_J.Continue(end_val93, step_val93); hv_J += step_val93)
-                {
-
-                    //Display contour
-                    poseTmp = pose.TupleSelectRange(hv_J*7,(hv_J*7)+6);
-                    ProjectShapeModel3d(&modelContours, modelID, camParam, poseTmp,"true", HTuple(30).TupleRad());
-                    hwindow->SetColor("white");
-                    hwindow->DispObj(modelContours);
-
-                    //Display Axis
-                    hwindow->SetColored(3);
-                    disp_3d_coord_system(camParam, poseTmp, 0.015);
-
-                }
-            }
-//            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            //Display Axis
+            hwindow->SetColored(3);
+            disp_3d_coord_system(camParam, poseTmp, 0.015);
 
         }
     }
+    //std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
+    
 }
 
 
