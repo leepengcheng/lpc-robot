@@ -55,11 +55,9 @@ const.COM={
 
 }
 
-const.SIGNAL={
-    UI_PARAM="uiParam", --界面保存参数
-    TRAJ_DATA="trajData",  --计算的轨迹路径
-    TRAJ_CMD="trajCmd",    --轨迹命令
-    ADS_CMD="adsCmd"       --ads命令
+const.DB={
+    UI="uiData", --界面保存参数
+    TRAJ="trajData",  --计算的轨迹路径
 }
 
 const.TOPICS={

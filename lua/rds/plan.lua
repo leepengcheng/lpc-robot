@@ -12,25 +12,28 @@ local const=require("const")
 
 function on_sub_plancmd(packedData)
     local data=sim.unpackTable(packedData)
-    local status,objHandle=pcall(sim.getObjectHandle,data[1])
-    local i=data[3]
-    if not status then
-        print("目标对象不存在")
-        return
+    local path=nil
+    local cmd=data[1]
+    if cmd=="new" then
+        local objname=data[2]
+        local num=data[3]
+        local status,objHandle=pcall(sim.getObjectHandle,objname)
+        if not status then
+            print("目标对象不存在")
+            return
+        end
+        local config=RDS:getConfig() --保存初始位 
+        local path1=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.1},nil,nil,"IK")
+        local path2=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.03},nil,const.action.close,"IK")
+        local path3=RDS:moveObjectToAbsTxyz(objHandle,{0.3-num*0.1,0.4,0.1},const.action.open,"IK")
+        path=TOOLS:tableConcat(path1,path2,path3)
+        local msgTable={objname=objname,path=path}
+        local msg=sim.packTable(msgTable)
+        simB0.publish(topicPubPlanedpath,msg)
+    else
+        path=data[2]
     end
-    local config=RDS:getConfig() --保存初始位 
-    local path1=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.1},nil,nil,"IK")
-
-    local path2=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.03},nil,const.action.close,"IK")
-
-    local path3=RDS:moveObjectToAbsTxyz(objHandle,{0.3-i*0.1,0.4,0.1},const.action.open,"IK")
-
-    local path=TOOLS:tableConcat(path1,path2,path3)
-
     TOOLS:visualizePath(path,false)
-    local msgTable={obj=data[1],data=path}
-    local msg=sim.packTable(msgTable)
-    simB0.publish(topicPubPlanedpath,msg)
     -- TOOLS:writeInfo(const.PATHNAME,msgTable,sim.getObjectHandle("path"))
     -- RDS:setConfig(config)  --返回初始位
     sim.wait(2.0)

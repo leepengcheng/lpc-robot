@@ -287,44 +287,6 @@ tools.parseADSNetID=function(self,idstr)
     return data
  end
 
---B0 UI发布命令的handle
--- tools.trajCmdPubHandle=nil
--- tools.trajCmdSubHandle=nil
-
--- --信号
--- tools.sendTrajCmdSignal=function(self,signal,handle)
---     handle=handle or self.trajCmdPubHandle
---     if not handle then
---         error("Wrong BlueZero Handle")
---     end
---     -- sim.setIntegerSignal(const.SIGNAL.TRAJ_CMD,signal)
---     simB0.publish(handle,signal)
--- end
-
--- tools.sendAdsCmdSignal=function(self,signal)
---     handle=handle or self.trajCmdPubHandle
---     if not handle then
---         error("Wrong BlueZero Handle")
---     end
---     -- sim.setIntegerSignal(const.SIGNAL.ADS_CMD,signal)
---     simB0.publish(self.trajCmdPubHandle,signal)
--- end
-
-
--- tools.readAdsCmdSignal=function(self,func,handle)
---     -- return sim.getIntegerSignal(const.SIGNAL.ADS_CMD)
---     local data=simB0.sub(self.trajCmdPubHandle)
---     return data
-    
--- end
-
--- tools.readTrajCmdSignal=function(self,func,handle)
---     handle=handle or self.trajCmdPubHandle
---     -- return sim.getIntegerSignal(const.SIGNAL.TRAJ_CMD)
---     local data=simB0.sub(self.trajCmdPubHandle)
--- end
-
-
 
 ---b0
 tools.initResolverB0=function(self,isShow)

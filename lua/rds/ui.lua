@@ -18,7 +18,7 @@ function loadUiConfig(self,isDefault)
     --populate data
     local data={}
     if not isDefault then
-        data=self:readInfo(const.SIGNAL.UI_PARAM)
+        data=self:readInfo(const.DB.UI)
     end
     simUI.setEditValue(self.ui,const.UI.editPath,data.editPath or "")
     simUI.setEditValue(self.ui,const.UI.editTarget,data.editTarget or "")
@@ -58,7 +58,7 @@ function saveUiConfig(self)
     --ui position
     local x,y=simUI.getPosition(self.ui)
     data.position={x,y}
-    tools:writeInfo(const.SIGNAL.UI_PARAM,data)
+    tools:writeInfo(const.DB.UI,data)
 end
 
 
@@ -124,11 +124,11 @@ function initUIXml()
             <button text="路径规划" on-click="on_plan_click"/>
             <button text="清除路径" on-click="on_planedpath_clear"/>
         </group>
-        <tree id="%d" autosize-header="true">
+        <tree id="%d" autosize-header="true" on-selection-change="on_treepath_selchange">
             <header>
                 <item>   路径ID</item>
                 <item>路径点数量</item>
-                <item> 初始位姿</item>
+                <item> 对象名称</item>
                 <item> 目标位姿</item>
             </header>
         </tree>
@@ -175,9 +175,11 @@ function initUIXml()
     ---------------------------------------------------------------
 
     local tab4Xml=string.format([[
-        <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节状态" on-change="on_check_readstatus" id="%d" checked="false" />
-        <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节位置" on-change="on_check_readstatus" id="%d" checked="false" />
-        <tree id="%d" autosize-header="true" on-selection-change="treeSelectionChange">
+        <group layout="grid">
+            <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节状态" on-change="on_check_readstatus" id="%d" checked="false" />
+            <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节位置" on-change="on_check_readstatus" id="%d" checked="false" />
+        </group>
+        <tree id="%d" autosize-header="true" on-selection-change="on_treestatus_change">
             <header>
                 <item>   关节编号   </item>
                 <item>关节位置(弧度)))</item>
@@ -197,6 +199,15 @@ function initUIXml()
 end
 
 
+
+function on_treepath_selchange(ui,id,itemid)
+       if itemid>const.UI.treePathStatus then
+            local n=itemid-const.UI.treePathStatus
+            local msgTable={"disp",pathDb[n]}
+            local msg=sim.packTable(msgTable)
+            simB0.publish(topicPubPlanCmd,msg)
+       end
+end
 ---############## UI 函数 ###############-
 function onComboselChanged(ui,id,index)
     comboSel=index
@@ -213,7 +224,7 @@ function on_load_config_click(ui,id)
     tools:loadUiConfig(true)
 end
 
-function treeSelectionChange(ui,id,itemid)
+function on_treestatus_change(ui,id,itemid)
     
 --     simUI.setWidgetVisibility(ui,9100,true)
 --     local h=itemid-2
@@ -252,18 +263,36 @@ end
 
 
 function on_plan_click(ui,id)
+    if #pathDb>=20 then
+        print("最多只可保存20条路径，请清楚路径后重新规划")
+        return
+    end
     local objName=simUI.getEditValue(ui,const.UI.editTarget)
-    local msgTable={objName,"new",4}
+    if objName=="" then
+        local handles=sim.getObjectSelection()
+        if handles then
+            objName=sim.getObjectName(handles[#handles])
+        else
+            print("请输入要抓取的目标名称或直接选中目标")
+            return
+        end
+    end
+    local msgTable={"new",objName,4}
     local msg=sim.packTable(msgTable)
     simB0.publish(topicPubPlanCmd,msg)
 end
+
 function on_planedpath_clear(ui,id)
     -- local data=tools:readInfo(const.PATHNAME,sim.getObjectHandle("path"))
-    
-    
+    simUI.clearTree(ui,const.UI.treePathStatus)
+    pathDb={}
 end
 
 function on_traj_new_click(ui,id)
+    if isInMotion then
+        print("机械臂运动过程中无法发送新轨迹")
+        return
+    end
     local index=math.ceil(tonumber(simUI.getEditValue(ui,const.UI.editIndex)))
     local step=math.ceil(tonumber(simUI.getEditValue(ui,const.UI.editStep)))
     local path,num=parsePathFileContent(ui)
@@ -307,7 +336,10 @@ end
 
 
 function on_traj_start_click(ui,id)
-
+    if isInMotion then
+        print("机械臂已经在运动")
+        return
+    end
     print("发送命令:执行运动")
     local msgTable=tools:packTrajData(const.COM.TRAJ_CMD_START)
     local msg=sim.packTable(msgTable)
@@ -331,6 +363,7 @@ end
 
 function on_sub_robostates(packedData)
     local data=sim.unpackTable(packedData)
+    isInMotion=data.inMotion --赋值给全局变量
     for i=1,7 do
         simUI.updateTreeItemText(tools.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""..data.position[i]})
     end
@@ -339,9 +372,10 @@ end
 
 function on_sub_planedpath(packedData)
     local msg=sim.unpackTable(packedData)
-    simUI.addTreeItem(tools.ui,const.UI.treePathStatus,const.UI.treePathStatus+1,{msg.obj,""..#msg.data/7,"",""})
-
-
+    -- tools:writeInfo(const.DB.TRAJ,msg,sim.getObjectHandle("path")) --把数据存入path dummy
+    local n=#pathDb+1
+    pathDb[n]=msg.path  --把数据存入pathDb
+    simUI.addTreeItem(tools.ui,const.UI.treePathStatus,const.UI.treePathStatus+n,{""..n,""..#msg.path/7,msg.objname,""})
 end
 ---@@@@@@@@@@@ UI 函数 @@@@@@@@@@@--
 
@@ -353,6 +387,9 @@ function sysCall_threadmain()
     local xml=initUIXml()
     tools:createUi(xml,handle,loadUiConfig,saveUiConfig)
     comboSel=0
+    pathTreeSel=0    --path tree选中的id
+    isInMotion=true  --机械臂是否在运动
+    pathDb={}        --规划出的轨迹保存的字典
     --#####BlueZero##################
     tools:initResolverB0()
     nodeUI=simB0.create("uiNode")
