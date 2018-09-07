@@ -66,9 +66,9 @@ end
 function parsePathFileContent(ui)
     --自主规划路径不需要验证
     local data={}
-    if comboSel==0 then
-        return data,nil
-    end
+    -- if comboSel==0 then
+    --     return data,nil
+    -- end
     local pathStr=simUI.getEditValue(ui,const.UI.editPath)
     if not isFileExist(pathStr) then
         print("请输入正确的文件路径")
@@ -124,7 +124,7 @@ function initUIXml()
             <button text="路径规划" on-click="on_plan_click"/>
             <button text="清除路径" on-click="on_planedpath_clear"/>
         </group>
-        <tree id="%d" autosize-header="true" on-selection-change="on_treepath_selchange">
+        <tree id="%d" autosize-header="true" on-selection-change="on_treePathSel_change">
             <header>
                 <item>   路径ID</item>
                 <item>路径点数量</item>
@@ -176,8 +176,8 @@ function initUIXml()
 
     local tab4Xml=string.format([[
         <group layout="grid">
-            <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节状态" on-change="on_check_readstatus" id="%d" checked="false" />
-            <checkbox style="font:13px;color:rgba(0,0,255,255)" text="关节位置" on-change="on_check_readstatus" id="%d" checked="false" />
+            <checkbox style="font:13px;color:rgba(0,0,255,255)" text="读取位置" on-change="on_check_readstatus" id="%d" checked="false" />
+            <checkbox style="font:13px;color:rgba(0,0,255,255)" text="同步状态" on-change="on_check_syncstatus" id="%d" checked="false" />
         </group>
         <tree id="%d" autosize-header="true" on-selection-change="on_treestatus_change">
             <header>
@@ -185,12 +185,15 @@ function initUIXml()
                 <item>关节位置(弧度)))</item>
             </header>
         </tree>
-        <group layout="form" id="9100" visible="false">
-            <label text="Object name" /><label id="9020" />
-            <label text="Object position" /><label id="9030" />
-            <label text="Object orientation" /><label id="9040" />
+        <plot id="%d" max-buffer-size="400" cyclic-buffer="true"/>
+        <group layout="form" id="9100" visible="true">
+            <label text="正在运行 " /><label id="%d"    text="未知"/>
+            <label text="驱动上电 " /><label id="9030"   text="是"/>
+            <label text="运行模式 " /><label id="9040" text="手动"/>
+            <label text="错误码   " /><label id="9050" text="0"/>
+            <label text="错误停止 " /><label id="9060" text="否"/>
         </group>
-        ]],902,903,const.UI.treeJointStatus)
+        ]],const.UI.checkRead,const.UI.checkSync,const.UI.treeJointStatus,const.UI.plotCurve,const.UI.labelInMotion)
     local tab4=tools:createUiTab(tab4Xml,"关节反馈")
     ---------------------------------------------------------------
 
@@ -199,15 +202,6 @@ function initUIXml()
 end
 
 
-
-function on_treepath_selchange(ui,id,itemid)
-       if itemid>const.UI.treePathStatus then
-            local n=itemid-const.UI.treePathStatus
-            local msgTable={"disp",pathDb[n]}
-            local msg=sim.packTable(msgTable)
-            simB0.publish(topicPubPlanCmd,msg)
-       end
-end
 ---############## UI 函数 ###############-
 function onComboselChanged(ui,id,index)
     comboSel=index
@@ -225,21 +219,65 @@ function on_load_config_click(ui,id)
 end
 
 function on_treestatus_change(ui,id,itemid)
-    
---     simUI.setWidgetVisibility(ui,9100,true)
---     local h=itemid-2
---     local p=sim.getObjectPosition(h,-1)
---     local o=sim.getObjectOrientation(h,-1)
---     simUI.setLabelText(ui,9020,sim.getObjectName(h))
---     simUI.setLabelText(ui,9030,string.format('x: %f  y: %f  z: %f', p[1], p[2], p[3]))
---     simUI.setLabelText(ui,9040,string.format('a: %f  b: %f  g: %f', o[1], o[2], o[3]))
+
+    if itemid>const.UI.treeJointStatus then
+        if pathIndexSel==0 then
+            print("请先选择规划出的路径")
+            return
+        end
+        local data=pathDb[pathIndexSel] --选择轨迹
+        local index=itemid-const.UI.treeJointStatus --选择要显示的轴的标识
+        local X={}
+        local Y={}
+        local N=#data/7
+        for i=1,N do
+            X[i]=i
+            Y[i]=data[7*(i-1)+index]
+        end
+        simUI.clearCurve(tools.ui,const.UI.plotCurve,'jointLine')
+                --缩放x/y轴在视野内
+        -- simUI.growPlotXRange(tools.ui,const.UI.plotCurve,-1,N) --x范围
+        -- simUI.growPlotYRange(tools.ui,const.UI.plotCurve,-5,5)
+        simUI.addCurveTimePoints(tools.ui,const.UI.plotCurve,'jointLine',X,Y)
+        simUI.rescaleAxesAll(tools.ui,const.UI.plotCurve,false,false)
+        simUI.replot(tools.ui,const.UI.plotCurve)
+    end
 end
+
+
+function on_treePathSel_change(ui,id,itemid)
+    if itemid>const.UI.treePathStatus then
+         pathIndexSel=itemid-const.UI.treePathStatus
+         local msgTable={"disp",pathDb[pathIndexSel]}
+         local msg=sim.packTable(msgTable)
+         simB0.publish(topicPubPlanCmd,msg)
+    else
+         pathIndexSel=0
+    end
+end
+
+
+
 
 function on_check_readstatus(ui,id,newVal)
     if newVal>0 then
         sim.setIntegerSignal("upload",1)
     end
 end
+function on_check_syncstatus(ui,id,newVal)
+    local isRead=simUI.getCheckboxValue(ui,const.UI.checkRead)
+    if isRead==0 then
+        print("同步需要先打开读取位置选项")
+        simUI.setCheckboxValue(ui,const.UI.checkSync,0)
+        return
+    end
+    if newVal>0 then
+        isSync=true
+    else
+        isSync=false
+    end
+end
+
 
 function on_openfile_click(ui,id)
     
@@ -253,10 +291,10 @@ end
 
 function on_importpath_click(ui,id)
     local path,num=parsePathFileContent(ui)
-    print(path)
     if path then
-        simUI.addTreeItem(ui,const.UI.treePathStatus,const.UI.treePathStatus+1,{""..1,""..num,"",""})
-        print("count"..simUI.getColumnCount(ui,const.UI.treePathStatus))
+        pathIndexSel=pathIndexSel+1
+        pathDb[pathIndexSel]=path
+        simUI.addTreeItem(ui,const.UI.treePathStatus,const.UI.treePathStatus+pathIndexSel,{""..pathIndexSel,""..num,"import",""})
     end
 end
 
@@ -277,7 +315,7 @@ function on_plan_click(ui,id)
             return
         end
     end
-    local msgTable={"new",objName,4}
+    local msgTable={"plan",objName,4}
     local msg=sim.packTable(msgTable)
     simB0.publish(topicPubPlanCmd,msg)
 end
@@ -286,21 +324,25 @@ function on_planedpath_clear(ui,id)
     -- local data=tools:readInfo(const.PATHNAME,sim.getObjectHandle("path"))
     simUI.clearTree(ui,const.UI.treePathStatus)
     pathDb={}
+    pathIndexSel=0
 end
 
 function on_traj_new_click(ui,id)
-    if isInMotion then
+    if roboState and roboState.inMotion>0 then
         print("机械臂运动过程中无法发送新轨迹")
         return
     end
     local index=math.ceil(tonumber(simUI.getEditValue(ui,const.UI.editIndex)))
     local step=math.ceil(tonumber(simUI.getEditValue(ui,const.UI.editStep)))
-    local path,num=parsePathFileContent(ui)
-    if  path then
-        print(string.format("发送命令:新的路径,路径点数目: %s",num))
+    if pathIndexSel>0 then
+        
+        local path=pathDb[pathIndexSel]
+        print(string.format("发送命令:新的路径,路径点数目: %s",#path/7))
         local msgTable=tools:packTrajData(const.COM.TRAJ_CMD_NEW,path,index,step)
         local msg=sim.packTable(msgTable)
         simB0.publish(topicPubTrajCmd,msg)
+    else
+        print("请选中需要发送的轨迹")
     end
 end
 
@@ -336,7 +378,7 @@ end
 
 
 function on_traj_start_click(ui,id)
-    if isInMotion then
+    if roboState and roboState.inMotion>0 then
         print("机械臂已经在运动")
         return
     end
@@ -362,12 +404,22 @@ end
 
 
 function on_sub_robostates(packedData)
-    local data=sim.unpackTable(packedData)
-    isInMotion=data.inMotion --赋值给全局变量
+    roboState=sim.unpackTable(packedData)
     for i=1,7 do
-        simUI.updateTreeItemText(tools.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""..data.position[i]})
+        simUI.updateTreeItemText(tools.ui,const.UI.treeJointStatus,const.UI.treeJointStatus+i,{""..i,""..roboState.position[i]})
     end
+    local status="否"
+    if roboState.inMotion>0 then 
+        status="是"
+    end
+    simUI.setLabelText(tools.ui,const.UI.labelInMotion,status)
 
+
+    if isSync then
+        local msgTable={"sync",roboState.position}
+        local msg=sim.packTable(msgTable)
+        simB0.publish(topicPubPlanCmd,msg)
+    end
 end
 
 function on_sub_planedpath(packedData)
@@ -386,10 +438,12 @@ function sysCall_threadmain()
     local handle=sim.getObjectAssociatedWithScript(sim.handle_self)
     local xml=initUIXml()
     tools:createUi(xml,handle,loadUiConfig,saveUiConfig)
+    --全局变量
     comboSel=0
-    pathTreeSel=0    --path tree选中的id
-    isInMotion=true  --机械臂是否在运动
+    pathIndexSel=0    --path tree选中的id
     pathDb={}        --规划出的轨迹保存的字典
+    roboState=nil    --接受到的编码器位置
+    isSync=false     --是否同步编码器
     --#####BlueZero##################
     tools:initResolverB0()
     nodeUI=simB0.create("uiNode")
@@ -400,6 +454,12 @@ function sysCall_threadmain()
     simB0.init(nodeUI)
     -- on_ads_init_click(tools.ui) --初始化ads链接
     
+    simUI.addCurve(tools.ui,const.UI.plotCurve,simUI.curve_type.time,'jointLine',{150,0,200},simUI.curve_style.line_and_scatter,
+    {scatter_shape=simUI.curve_scatter_shape.star,scatter_size=2,line_size=1})
+    --允许移动和缩放
+    simUI.setMouseOptions(tools.ui,const.UI.plotCurve,true,true,true,true)
+
+
     while sim.getSimulationState()~=sim.simulation_advancing_abouttostop do
         if nodeUI then
             -- simB0.spinOnce(nodeUI)

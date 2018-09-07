@@ -12,9 +12,8 @@ local const=require("const")
 
 function on_sub_plancmd(packedData)
     local data=sim.unpackTable(packedData)
-    local path=nil
     local cmd=data[1]
-    if cmd=="new" then
+    if cmd=="plan" then
         local objname=data[2]
         local num=data[3]
         local status,objHandle=pcall(sim.getObjectHandle,objname)
@@ -26,17 +25,22 @@ function on_sub_plancmd(packedData)
         local path1=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.1},nil,nil,"IK")
         local path2=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.03},nil,const.action.close,"IK")
         local path3=RDS:moveObjectToAbsTxyz(objHandle,{0.3-num*0.1,0.4,0.1},const.action.open,"IK")
-        path=TOOLS:tableConcat(path1,path2,path3)
+        local path=TOOLS:tableConcat(path1,path2,path3)
         local msgTable={objname=objname,path=path}
         local msg=sim.packTable(msgTable)
         simB0.publish(topicPubPlanedpath,msg)
-    else
-        path=data[2]
+        RDS:setConfig(config)  --返回初始位
+        -- sim.wait(2.0)
+    elseif cmd=="disp" then
+        local path=data[2]
+        TOOLS:visualizePath(path,false)
+    elseif cmd=="sync" then
+        local config=data[2]
+        RDS:setConfig(config) 
     end
-    TOOLS:visualizePath(path,false)
     -- TOOLS:writeInfo(const.PATHNAME,msgTable,sim.getObjectHandle("path"))
-    -- RDS:setConfig(config)  --返回初始位
-    sim.wait(2.0)
+
+    
 end
 
 function sysCall_threadmain()

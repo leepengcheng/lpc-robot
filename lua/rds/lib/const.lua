@@ -65,7 +65,7 @@ const.TOPICS={
     TRAJCMD="trajcmd", --发出开始执行轨迹命令
     PLANCMD="plancmd", --发出开始规划的命令
     ROBOSTATES="robostates", --采集到的关节数据/机器人状态
-    PLANEDPATH="planedpath"  --规划出来的轨迹数据
+    PLANEDPATH="planedpath" --规划出来的轨迹数据
 }
 
 const.UI={
@@ -86,17 +86,14 @@ const.UI={
     editInMotion=3004,
     editImotionPossible=3005,
     editErrorCode=3006,
-    treeJointStatus=4000,
     treePathStatus=5000,
     groupManul=8000,
-    groupAuto=8001
-
-
-
-
-
-
-
+    groupAuto=8001,
+    treeJointStatus=9000,
+    checkRead=9001,
+    checkSync=9002,
+    labelInMotion=9003,
+    plotCurve=9600
 }
 
 return const
