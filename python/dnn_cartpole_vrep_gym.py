@@ -1,5 +1,4 @@
 #coding:utf-8
-
 import os,time
 import numpy as np
 import gym
@@ -14,7 +13,6 @@ import torch.optim as optim
 from torch.distributions import Categorical #类别分布
 
 import  vrep
-
 from vrepUtil import  blocking,onshot,init
 
 
@@ -30,7 +28,7 @@ class CartPoleVREPEnv(gym.Env):
         #质量块X位置/Z位置(垂直向上)
         #质量块X速度/Z速度(垂直向上)
         obs = np.array([np.inf]*6) #观测值
-        act = np.array([1.])       #执行
+        act = np.array([1.0])       #执行
 
         #执行空间和观测空间的区间范围上下限
         self.action_space = spaces.Box(-act,act,dtype=np.float32)
@@ -39,7 +37,7 @@ class CartPoleVREPEnv(gym.Env):
     def updateObjectHandles(self):
         _,self.cartpole_handle=vrep.simxGetObjectHandle(self.clientID,'cart_pole',blocking)
             #小车的滑动关节
-        _,self.slider_Jhandle=vrep.simxGetObjectHandle(self.clientID,'car_joint_slider',blocking)
+        _,self.slider_Jhandle=vrep.simxGetObjectHandle(self.clientID,'slider',blocking)
         #小车本体
         _,self.cart_handle=vrep.simxGetObjectHandle(self.clientID,'cart',blocking)
         #质量块(倒立摆)
