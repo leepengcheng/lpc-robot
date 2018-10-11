@@ -26,10 +26,10 @@ function on_sub_plancmd(packedData)
         local path2=RDS:moveObjectToRelativeTxyzRxyz(objHandle,{0,0,-0.03},nil,const.action.close,"IK")
         local path3=RDS:moveObjectToAbsTxyz(objHandle,{0.3-num*0.1,0.4,0.1},const.action.open,"IK")
         local path=TOOLS:tableConcat(path1,path2,path3)
-        local msgTable={objname=objname,path=path}
+        local msgTable={objname=objname,path=path1}
         local msg=sim.packTable(msgTable)
         simB0.publish(topicPubPlanedpath,msg)
-        RDS:setConfig(config)  --返回初始位
+        -- RDS:setConfig(config)  --返回初始位
         -- sim.wait(2.0)
     elseif cmd=="disp" then
         local path=data[2]

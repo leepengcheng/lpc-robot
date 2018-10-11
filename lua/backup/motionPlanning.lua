@@ -1,14 +1,3 @@
--- function include(absolutePathAndFile)
---     if not __notFirst__ then
---         __notFirst__=true
---         __scriptCodeToRun__=assert(loadfile(absolutePathAndFile))
---     end
---     if __scriptCodeToRun__ then
---         __scriptCodeToRun__()
---     end
--- end
--- include('E:/Work/VREP/motionPlanning.lua')
-
 visualizePath=function(path)
     if not _lineContainer then
         _lineContainer=simAddDrawingObject(sim_drawing_lines,3,0,-1,99999,{1,1,0})
@@ -20,8 +9,8 @@ visualizePath=function(path)
         local l=#jh
         local pc=#path/l
         for i=1,pc-1,1 do
-            local config1={path[(i-1)*l+1],path[(i-1)*l+2],path[(i-1)*l+3],path[(i-1)*l+4],path[(i-1)*l+5],path[(i-1)*l+6]}
-            local config2={path[i*l+1],path[i*l+2],path[i*l+3],path[i*l+4],path[i*l+5],path[i*l+6]}
+            local config1={path[(i-1)*l+1],path[(i-1)*l+2],path[(i-1)*l+3],path[(i-1)*l+4],path[(i-1)*l+5],path[(i-1)*l+6],path[(i-1)*l+7]}
+            local config2={path[i*l+1],path[i*l+2],path[i*l+3],path[i*l+4],path[i*l+5],path[i*l+6],path[i*l+7]}
             setConfig(config1)
             local lineDat=simGetObjectPosition(ikTip,-1)
             setConfig(config2)
@@ -62,8 +51,8 @@ end
 
 _applyJoints=function(jointHandles,joints)
     for i=1,#jointHandles,1 do
-        simSetJointTargetPosition(jointHandles[i],joints[i])
-        -- simSetJointPosition(jointHandles[i],joints[i])
+        -- simSetJointTargetPosition(jointHandles[i],joints[i])
+        simSetJointPosition(jointHandles[i],joints[i])
     end
 end
 
@@ -124,15 +113,15 @@ findCollisionFreeConfig=function(matrix)
     local jointLimitsL={}
     local jointRanges={}
     for i=1,#jh,1 do
-        jointLimitsL[i]=cc[i]-360*math.pi/180
-        if jointLimitsL[i]<-10000 then jointLimitsL[i]=-10000 end
-        jointRanges[i]=720*math.pi/180
-        if cc[i]+jointRanges[i]>10000 then jointRanges[i]=10000-cc[i] end
+        jointLimitsL[i]=-math.pi
+        jointRanges[i]=2*math.pi
     end
-    jointLimitsL[2]=47*math.pi/180
-    jointRanges[2]=266*math.pi/180
-    jointLimitsL[3]=19*math.pi/180
-    jointRanges[3]=322*math.pi/180
+    jointLimitsL[2]=-0.67*math.pi
+    jointRanges[2]=0.67*math.pi*2
+    jointLimitsL[4]=-0.67*math.pi
+    jointRanges[4]=0.67*math.pi*2
+    jointLimitsL[6]=-0.67*math.pi
+    jointRanges[6]=0.67*math.pi*2
     --jh:关节句柄 
     -- 0.65：当distance小于该值时，进行IK解算至目标位置，过大会导致IK计算量过大，过小会导致小步的迭代
     -- 10:maxTimeInMs，超过10ms无结果则停止搜索
@@ -234,8 +223,8 @@ getPathLength=function(path)
     local l=#jh
     local pc=#path/l
     for i=1,pc-1,1 do
-        local config1={path[(i-1)*l+1],path[(i-1)*l+2],path[(i-1)*l+3],path[(i-1)*l+4],path[(i-1)*l+5],path[(i-1)*l+6]}
-        local config2={path[i*l+1],path[i*l+2],path[i*l+3],path[i*l+4],path[i*l+5],path[i*l+6]}
+        local config1={path[(i-1)*l+1],path[(i-1)*l+2],path[(i-1)*l+3],path[(i-1)*l+4],path[(i-1)*l+5],path[(i-1)*l+6],path[(i-1)*l+7]}
+        local config2={path[i*l+1],path[i*l+2],path[i*l+3],path[i*l+4],path[i*l+5],path[i*l+6],path[i*l+7]}
         d=d+getConfigConfigDistance(config1,config2)
     end
     return d
@@ -244,22 +233,23 @@ end
 findPath=function(startConfig,goalConfigs,cnt)
     -- 计算起始构型到目标构型的路径，每个目标构型计算cnt次
     --返回最短的路径以及长度(构型空间的能量距离)
-     
     --部分关节的运动范围过大,例如+-10'000,将会导致搜索空间过大/速度过慢/效率降低,所以限制关节的运动范围
     local jointLimitsL={}
     local jointLimitsH={}
     
     for i=1,#jh,1 do
-        jointLimitsL[i]=startConfig[i]-360*math.pi/180
-        if jointLimitsL[i]<-10000 then jointLimitsL[i]=-10000 end
-        jointLimitsH[i]=startConfig[i]+360*math.pi/180
-        if jointLimitsH[i]>10000 then jointLimitsH[i]=10000 end
+        jointLimitsL[i]=startConfig[i]-2*math.pi
+        -- if jointLimitsL[i]<-10000 then jointLimitsL[i]=-10000 end
+        jointLimitsH[i]=startConfig[i]+2*math.pi
+        -- if jointLimitsH[i]>10000 then jointLimitsH[i]=10000 end
     end
-    --设置2/3关节的运动范围(这2个关节的能量消耗最大)
-    jointLimitsL[2]=47*math.pi/180
-    jointLimitsH[2]=313*math.pi/180
-    jointLimitsL[3]=19*math.pi/180
-    jointLimitsH[3]=341*math.pi/180
+    -- --设置2/3关节的运动范围(这2个关节的能量消耗最大)
+    -- jointLimitsL[2]=47*math.pi/180
+    -- jointLimitsH[2]=313*math.pi/180
+    -- jointLimitsL[3]=19*math.pi/180
+    -- jointLimitsH[3]=341*math.pi/180
+
+    
 
     local task=simExtOMPL_createTask('task') --创建任务
     simExtOMPL_setAlgorithm(task,algoOMPL)   --设置算法
@@ -315,7 +305,11 @@ findShortestPath=function(startConfig,goalConfigs,searchCntPerGoalConfig)
     --返回最短的路径以及长度(构型空间的能量距离)
     --其中onepath 为N*6=1200,即路径上200个构型*6个关节的角度
     local onePath,onePathLength=findPath(startConfig,goalConfigs,searchCntPerGoalConfig)
-    return onePath,generatePathLengths(onePath)
+    if onePath then
+        return onePath,generatePathLengths(onePath)
+    else
+        return nil,nil
+    end
 end
 
 generateIkPath=function(startConfig,goalPose,steps,ignoreCollisions)
@@ -341,7 +335,7 @@ executeMotion=function(path,lengths,maxVel,maxAccel,maxJerk,pathName)
 
     -- 1.折算出每个关节最大的速度
     jointsUpperVelocityLimits={}
-    for j=1,6,1 do
+    for j=1,7,1 do
         res,jointsUpperVelocityLimits[j]=simGetObjectFloatParameter(jh[j],sim_jointfloatparam_upper_limit)
     end
     velCorrection=1
@@ -352,7 +346,7 @@ executeMotion=function(path,lengths,maxVel,maxAccel,maxJerk,pathName)
         targetPosVel={lengths[#lengths],0}
         pos=0
         res=0
-        previousQ={path[1],path[2],path[3],path[4],path[5],path[6]}
+        previousQ={path[1],path[2],path[3],path[4],path[5],path[6],path[7]}
         local rMax=0
         rmlHandle=simRMLPos(1,0.0001,-1,posVelAccel,{maxVel*velCorrection,maxAccel,maxJerk},{1},targetPosVel)
         while res==0 do
@@ -364,8 +358,8 @@ executeMotion=function(path,lengths,maxVel,maxAccel,maxJerk,pathName)
                     l2=lengths[i+1]
                     if (l>=l1)and(l<=l2) then
                         t=(l-l1)/(l2-l1)
-                        for j=1,6,1 do
-                            q=path[6*(i-1)+j]+_getJointPosDifference(path[6*(i-1)+j],path[6*i+j],jt[j]==sim_joint_revolute_subtype)*t
+                        for j=1,7,1 do
+                            q=path[7*(i-1)+j]+_getJointPosDifference(path[7*(i-1)+j],path[7*i+j],jt[j]==sim_joint_revolute_subtype)*t
                             dq=_getJointPosDifference(previousQ[j],q,jt[j]==sim_joint_revolute_subtype)
                             previousQ[j]=q
                             r=math.abs(dq/dt)/jointsUpperVelocityLimits[j]
@@ -416,8 +410,8 @@ executeMotion=function(path,lengths,maxVel,maxAccel,maxJerk,pathName)
                 l2=lengths[i+1]
                 if (l>=l1)and(l<=l2) then
                     t=(l-l1)/(l2-l1)
-                    for j=1,6,1 do
-                        jointPos[j]=path[6*(i-1)+j]+_getJointPosDifference(path[6*(i-1)+j],path[6*i+j],jt[j]==sim_joint_revolute_subtype)*t
+                    for j=1,7,1 do
+                        jointPos[j]=path[7*(i-1)+j]+_getJointPosDifference(path[7*(i-1)+j],path[7*i+j],jt[j]==sim_joint_revolute_subtype)*t
                     end
                     _applyJoints(jh,jointPos)
                     break
@@ -432,16 +426,16 @@ end
 
 savePath=function(filename,path,lengths)
     -- 保存自定义路径
-    simWriteCustomDataBlock(jacoHandle,filename..'.pathData1',simPackFloatTable(path))
-    simWriteCustomDataBlock(jacoHandle,filename..'.pathLength1',simPackFloatTable(lengths))
+    simWriteCustomDataBlock(rdsHandle,filename..'.pathData1',simPackFloatTable(path))
+    simWriteCustomDataBlock(rdsHandle,filename..'.pathLength1',simPackFloatTable(lengths))
 end
 
 loadPath=function(filename)
-    path=simReadCustomDataBlock(jacoHandle,filename..'.pathData1')
+    path=simReadCustomDataBlock(rdsHandle,filename..'.pathData1')
     if (not path) then return nil end
     path=simUnpackFloatTable(path)
 
-    lengths=simReadCustomDataBlock(jacoHandle,filename..'.pathLength1')
+    lengths=simReadCustomDataBlock(rdsHandle,filename..'.pathLength1')
     if (not lengths) then return nil end
     lengths=simUnpackFloatTable(lengths)
     return path,lengths
@@ -472,17 +466,16 @@ function pathPlaning()
 end
 
 -- START HERE:
-jh={-1,-1,-1,-1,-1,-1}
-jt={-1,-1,-1,-1,-1,-1}
-for i=1,6,1 do
-    jh[i]=simGetObjectHandle('Jaco_joint'..i)
+jh={-1,-1,-1,-1,-1,-1,-1}
+jt={-1,-1,-1,-1,-1,-1,-1}
+for i=1,7,1 do
+    jh[i]=simGetObjectHandle('j'..i)
     jt[i]=simGetJointType(jh[i])
 end
-jacoHandle=simGetObjectHandle('Jaco')    
-ikTarget=simGetObjectHandle('Jaco_target')
-ikTip=simGetObjectHandle('Jaco_tip')
-ikGroup=simGetIkGroupHandle('Jaco_ik')
-target0=simGetObjectHandle('jacoTarget0')
+rdsHandle=simGetObjectHandle('RDS_01')    
+ikTarget=simGetObjectHandle('RDS_01_target')
+ikTip=simGetObjectHandle('RDS_01_tip')
+ikGroup=simGetIkGroupHandle('RDS_IK_PINV')
 target1=simGetObjectHandle('jacoTarget1')
 target2=simGetObjectHandle('jacoTarget2')
 ------------------------------------------------------
@@ -494,12 +487,13 @@ simSetIntegerSignal("configNumer_1",1)        --初始当前路径点标识(1~co
 
 --@@@@@@@@@@@@@@@@@@@@@@@@参数表@@@@@@@@@@@@@@@@@@@@@@@@
 --碰撞对：1-2:机械臂本身不发生碰撞，3-4：机械臂和其他的对象不发生碰撞
-collisionPairs={simGetCollectionHandle('Jaco'),simGetCollectionHandle('Jaco'),simGetCollectionHandle('Jaco'),collisionHandle}
+-- collisionPairs={simGetCollectionHandle('RDS_01'),simGetCollectionHandle('RDS_01'),simGetCollectionHandle('RDS_01'),collisionHandle}
+collisionPairs={simGetCollectionHandle('RDS_01'),collisionHandle}
 maxVel=1    --最大速度
 maxAccel=1  --最大加速度
 maxJerk=8000 --最大加加速度
 forbidLevel=0 
-metric={0.2,1,0.8,0.1,0.1,0.1} --关节能量权重
+metric={0.2,1,0.8,0.1,0.1,0.1,0.1} --关节能量权重
 ikSteps=20                     --Ik
 singlePlanTime=4 -- 单次路径规划的最长允许时间，单位s
 -- sim_ompl_algorithm_BKPIECE1
@@ -508,7 +502,7 @@ configPlanAttempts=4 -- 单个目标构型的路径规划最大次数
 -- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 --清除上次生成的路径
-simWriteCustomDataBlock(jacoHandle,'',nil)
+simWriteCustomDataBlock(rdsHandle,'',nil)
 
 repeat
     
@@ -540,12 +534,12 @@ end
 
 -- -- -- 合并机械手,抓住杯子
 simAddStatusbarMessage("执行动作3：合并机械手")
-simSetIntegerSignal("hand",1)
-simWait(1.25)
+sim.setIntegerSignal('RG2_close',1)
+simWait(1.0)
 
 
 
--- -- 举起杯子(IK)
+-- -- -- 举起杯子(IK)
 simAddStatusbarMessage("执行动作4：举起杯子(逆解算)")
 local m=simGetObjectMatrix(target2,-1)
 path,lengths=generateIkPath(getConfig(),m,ikSteps,true)

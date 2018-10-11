@@ -245,6 +245,7 @@ function on_treestatus_change(ui,id,itemid)
 end
 
 
+--事件:选择规划的轨迹序号后显示3d轨迹
 function on_treePathSel_change(ui,id,itemid)
     if itemid>const.UI.treePathStatus then
          pathIndexSel=itemid-const.UI.treePathStatus

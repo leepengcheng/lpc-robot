@@ -7,46 +7,6 @@ function getConfig()
     return config
 end
 
-function createShapeBoundingBoxAndJoints(shapeHandles,baseIndexTable)
-    --创建机械臂关节及包围盒模型
-    shapeHandles={}
-    jointHandles={}
-    for i=1,6,1 do
-        shapeHandles[i]=simGetObjectHandle(string.format("Jaco_link%s_visible",i))
-        jointHandles[i]=simGetObjectHandle(string.format("Jaco_joint%s",i))
-    end
-    shapeHandles[7]=simGetObjectHandle("JacoHand")
-    baseIndexTable={0,0,0,0,0,0,1}
-    simCopyPasteObjects(jointHandles,0) --复制关节
-    for i=1,#shapeHandles,1 do
-        objHandle=shapeHandles[i]
-        pos=simGetObjectPosition(objHandle,-1) --目标的坐标
-        ori=simGetObjectOrientation(objHandle,-1) --目标的方位
-        start=14
-        if baseIndexTable[i]==1 then
-            start=20
-            pos_tip=simGetObjectPosition(simGetObjectHandle("Jaco_tip"),-1)
-            for j=1,3,1 do
-                pos[j]=(pos[j]+pos_tip[j])/2.0
-            end
-        end
-        --获得对象的包围盒的尺寸
-        res,xmin=simGetObjectFloatParameter(objHandle,start+1)
-        res,ymin=simGetObjectFloatParameter(objHandle,start+2 )
-        res,zmin=simGetObjectFloatParameter(objHandle,start+3 )
-        res,xmax=simGetObjectFloatParameter(objHandle,start+4 )
-        res,ymax=simGetObjectFloatParameter(objHandle,start+5 )
-        res,zmax=simGetObjectFloatParameter(objHandle,start+6 )
-        xsize=xmax-xmin
-        ysize=ymax-ymin
-        zsize=zmax-zmin
-        --创建包围盒
-        boxHandle=simCreatePureShape(0,16,{xsize,ysize,zsize},0.0)
-        simSetObjectPosition(boxHandle,-1,pos)
-        simSetObjectOrientation(boxHandle,-1,ori)
-    end
-end
-
 
 function setConfig(config)
     -- 设置虚拟机械臂到指定构型
@@ -58,7 +18,7 @@ function setConfig(config)
 end
 
 function loadPath(filename)
-    path=simReadCustomDataBlock(jacoHandle,filename..'.pathData1')
+    path=simReadCustomDataBlock(rdsHandle,filename..'.pathData1')
     if (not path) then return nil end
     path=simUnpackFloatTable(path)
     return path
@@ -74,13 +34,13 @@ function  checkCollision()
     path=loadPath('jacoPath_1') --获取所有路径的构型
     if path then
         index=simGetIntegerSignal("configNumer_1")--获取当前构型的步数
-        ncfg=#path/6
+        ncfg=#path/7
         for n=index,ncfg-1 do 
-            initConfig={path[n*6+1],path[n*6+2],path[n*6+3],path[n*6+4],path[n*6+5],path[n*6+6]}
+            initConfig={path[n*7+1],path[n*7+2],path[n*7+3],path[n*7+4],path[n*7+5],path[n*7+6],path[n*7+7]}
             --if index==ncfg-1 then
                 setConfig(initConfig)
             --end
-            if simCheckCollision(jaco_,cubes)==1 then 
+            if simCheckCollision(rdsCHandle_,cubeCHandle)==1 then 
                 simAddStatusbarMessage("Find collision..."..n)
                 return n,n-index
             end 
@@ -96,29 +56,27 @@ if (sim_call_type==sim_childscriptcall_initialization) then
     --对象获取
     C1Handle=simGetObjectHandle('Collision1')
     C2Handle=simGetObjectHandle('Collision2')
-    jacoHandle=simGetObjectHandle('Jaco')   --机械臂对象(保存路径的对象)
-    jaco=simGetCollectionHandle("Jaco")    --机械臂集合
-    jaco_=simGetCollectionHandle("Jaco_")  --虚拟机械臂
-    cubes=simGetCollectionHandle("CollisionCubes")
-    jointMode=sim_jointmode_ik --关节的模式
-    simWriteCustomDataBlock(jacoHandle,'',nil)
+    rdsHandle=simGetObjectHandle('RDS_01')   --机械臂对象(保存路径的对象)
+    rdsCHandle=simGetCollectionHandle("RDS_01")    --机械臂集合
+    rdsCHandle_=simGetCollectionHandle("RDS_01_")  --虚拟机械臂
+    cubeCHandle=simGetCollectionHandle("CollisionCubes")
+    simWriteCustomDataBlock(rdsHandle,'',nil)
     -- 或得机械臂关节的句柄
-    jh={-1,-1,-1,-1,-1,-1}
-    jh_={-1,-1,-1,-1,-1,-1}
-    arm_={-1,-1,-1,-1,-1,-1}
-    for i=1,6,1 do
-        jh_[i]=simGetObjectHandle("jjoint"..i)
-        jh[i]=simGetObjectHandle('Jaco_joint'..i)
-        arm_[i]=simGetObjectHandle("arm"..i)
-        -- simSetJointMode(jh_[i],jointMode,1)
+    jh={-1,-1,-1,-1,-1,-1,-1}
+    jh_={-1,-1,-1,-1,-1,-1,-1}
+    arm_={-1,-1,-1,-1,-1,-1,-1}
+    for i=1,7,1 do
+        jh[i]=simGetObjectHandle('j'..i)
+        jh_[i]=simGetObjectHandle(string.format("j%s_v",i))
+        arm_[i]=simGetObjectHandle(string.format("link%s_v",i))
     end
     
     ----控制参数
     THRESHOLD_DISTANCE=0.5                   --距离检测的阈值,触发报警的障碍物距离
     THRESHOLD_INTERVAL=1.0                   --检查路径碰撞的时间间隔s
-    STOP_RATIO=0.3                          --目标上有障碍物时停止的阈值
+    STOP_RATIO=0.2                          --目标上有障碍物时停止的阈值
     CONFIG_NUM=200                           --生成的构型数目
-    REPLAN_INTERVAL=5                        --重新路径规划的时间间隔
+    REPLAN_INTERVAL=2                        --重新路径规划的时间间隔
     
 end
 
@@ -138,7 +96,8 @@ if (sim_call_type==sim_childscriptcall_actuation) then
     --大于距离阈值时res=0,小于阈值时res=1,其他情况res=-1
     -- disData: disData[1]-disData[6] 代表距离分段
     -- disData[7]是实体的距离. disData is nil if result is different from 1
-    res,distance=simCheckDistance(jaco,cubes,THRESHOLD_DISTANCE)--计算障碍物到机械臂的最短距离
+
+    res,distance=sim.checkDistance(rdsCHandle,cubeCHandle,THRESHOLD_DISTANCE)--计算障碍物到机械臂的最短距离
     --当res=1时表示最短距离小于THRESHOLD_DISTANCE
     if res==1 then
         minDist=distance[7] --获得最短距离
