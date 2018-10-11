@@ -584,7 +584,7 @@ robot.getIKPlaningPath = function(self,targetMatrix)
     self:forbidThreadSwitches(true)
     -- self:setConfig(config)
     sim.setObjectMatrix(self.ik.targetHandle, -1, targetMatrix)
-    local coll = self.collisions.robotColHandle
+    local coll = self:getCollisionPairs()
     if self.ik.ignoreCollisions then
         coll = nil
     end
