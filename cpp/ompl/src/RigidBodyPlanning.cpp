@@ -4,6 +4,7 @@
 #include <ompl/geometric/SimpleSetup.h>
 #include <ompl/config.h>
 #include <iostream>
+#include <fstream>
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
@@ -110,8 +111,8 @@ void planWithSimpleSetup()
 
     // set the bounds for the R^3 part of SE(3)
     ob::RealVectorBounds bounds(3);
-    bounds.setLow(-1);
-    bounds.setHigh(1);
+    bounds.setLow(-10);
+    bounds.setHigh(10);
 
     space->setBounds(bounds);
 
@@ -138,7 +139,7 @@ void planWithSimpleSetup()
 //    ss.print();
 
     // attempt to solve the problem within one second of planning time
-    ob::PlannerStatus solved = ss.solve(1.0);
+    ob::PlannerStatus solved = ss.solve(10.0);
 
     if (solved)
     {
@@ -146,6 +147,10 @@ void planWithSimpleSetup()
         // print the path to screen
         ss.simplifySolution();
         ss.getSolutionPath().print(std::cout);
+
+        std::ofstream outfile("data.txt");
+        ss.getSolutionPath().printAsMatrix(outfile);
+        outfile.close();
     }
     else
         std::cout << "No solution found" << std::endl;
@@ -155,11 +160,11 @@ int main(int /*argc*/, char ** /*argv*/)
 {
     std::cout << "OMPL version: " << OMPL_VERSION << std::endl;
 
-    plan();
+//    plan();
 //
 //    std::cout << std::endl << std::endl;
 
-//    planWithSimpleSetup();
+    planWithSimpleSetup();
 
     return 0;
 }

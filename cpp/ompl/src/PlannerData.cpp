@@ -60,8 +60,8 @@ void planWithSimpleSetup()
     ss.setStartAndGoalStates(start, goal);
 
     // this call is optional, but we put it in to get more output information
-    ss.setup();
-    ss.print();
+//    ss.setup();
+//    ss.print();
 
     // attempt to find an exact solution within five seconds
     if (ss.solve(5.0) == ob::PlannerStatus::EXACT_SOLUTION)
@@ -71,7 +71,7 @@ void planWithSimpleSetup()
         std::cout << std::endl;
         std::cout << "Found solution with " << slnPath.getStateCount() << " states and length " << slnPath.length() << std::endl;
         // print the path to screen
-        //slnPath.print(std::cout);
+//        slnPath.print(std::cout);
 
         std::cout << "Writing PlannerData to file './myPlannerData'" << std::endl;
         ob::PlannerData data(ss.getSpaceInformation());
