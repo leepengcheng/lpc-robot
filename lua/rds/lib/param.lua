@@ -13,6 +13,7 @@ robot.maxJerk = 1000 --最大加加速度
 robot.forbidLevel = 0
 robot.metric = {0.2, 1, 0.8, 0.1, 0.1, 0.1,0.1} --关节能量权重
 robot.algoOMPL = simOMPL.Algorithm.BKPIECE1 -- OMPL路径规划所用的算法
+-- simOMPL.Algorithm.PRM
 -- simOMPL.Algorithm.RRTConnect
 robot.singlePlanTime = 4       -- 单次路径规划的最长允许时间，单位s
 robot.configPlanAttempts = 4 -- 单个目标构型的路径规划最大次数(OMPL)
